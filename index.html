@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Recuerdos de Viaje</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter & Playfair Display para un look premium) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Lucide Icons (Inline SVGs se usarán para mayor fidelidad) -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .serif-title {
+            font-family: 'Playfair Display', serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="flex-grow flex flex-col">
+        <!-- HEADER -->
+        <header class="bg-white border-b border-slate-100 sticky top-0 z-40 backdrop-blur-md bg-white/90">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <!-- Logo & Title -->
+                <button onclick="router.go('countries')" class="flex items-center gap-3 group focus:outline-none">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-100 group-hover:scale-105 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    </div>
+                    <div class="text-left">
+                        <h1 class="text-xl font-bold tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">Bitácora de Viajes</h1>
+                        <p class="text-xs text-slate-400">Tus memorias organizadas de forma dinámica</p>
+                    </div>
+                </button>
+
+                <!-- Search / Quick Nav -->
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleInfoModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" title="Información sobre la estructura de archivos">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </button>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Multimedia Localizada
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- BREADCRUMBS -->
+        <div class="bg-white border-b border-slate-100 py-3">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex text-xs font-medium text-slate-500" id="breadcrumbs">
+                    <!-- Se llena dinámicamente -->
+                </nav>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div id="view-content" class="transition-opacity duration-200">
+                <!-- Las pantallas dinámicas se cargarán aquí -->
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white border-t border-slate-100 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-slate-400">Organización automática basada en nomenclaturas de carpetas (`multimedia/{carpeta_recuerdo}`) </p>
+                <div class="flex gap-4 text-xs text-slate-400">
+                    <span>Fotos y Videos Sincronizados</span>
+                    <span>•</span>
+                    <span>Modo Dinámico Activo</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- LIGHTBOX / MEDIA VIEWER MODAL -->
+    <div id="lightbox" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md hidden z-50 flex-col justify-between p-4 sm:p-6 transition-all duration-300">
+        <!-- Lightbox Header -->
+        <div class="flex justify-between items-center w-full text-white z-10">
+            <div>
+                <h3 id="lightbox-title" class="text-lg font-bold">Título del recuerdo</h3>
+                <p id="lightbox-subtitle" class="text-xs text-slate-400">Detalle del archivo</p>
+            </div>
+            <button onclick="closeLightbox()" class="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Lightbox Content Area -->
+        <div class="flex-grow flex items-center justify-between gap-4 max-h-[80vh] my-auto">
+            <!-- Prev Button -->
+            <button onclick="prevMedia()" class="p-3 bg-white/5 hover:bg-white/15 text-white rounded-full transition-all hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+
+            <!-- Media Container -->
+            <div class="flex-grow flex justify-center items-center h-full max-w-4xl mx-auto overflow-hidden">
+                <div id="lightbox-media-box" class="max-w-full max-h-full flex justify-center items-center">
+                    <!-- Se inyecta la tag img o video dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Next Button -->
+            <button onclick="nextMedia()" class="p-3 bg-white/5 hover:bg-white/15 text-white rounded-full transition-all hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+
+        <!-- Lightbox Footer / Carousel Indicators -->
+        <div class="w-full text-center text-xs text-slate-400 py-2 z-10 flex flex-col items-center gap-2">
+            <span id="lightbox-counter">1 de 12</span>
+            <div id="lightbox-thumbs" class="flex gap-2 overflow-x-auto max-w-full py-1 px-4">
+                <!-- Mini miniaturas opcionales -->
+            </div>
+        </div>
+    </div>
+
+    <!-- STRUCTURE EXPLANATION MODAL -->
+    <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleInfoModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                Estructura de Carpetas y JSON
+            </h3>
+            <p class="text-sm text-slate-600 mb-4">
+                Esta app está diseñada para leer archivos estructurados dinámicamente. La estructura de tus archivos JSON y carpetas debe ser la siguiente:
+            </p>
+            
+            <div class="bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-xs overflow-x-auto mb-4">
+<span class="text-indigo-400">📂 recuerdos-app/</span>
+├── <span class="text-emerald-400">📁 multimedia/</span>  <span class="text-slate-400">// ¡Aquí metes TODO junto!</span>
+│   ├── cristoredentor-1.jpg
+│   ├── cristoredentor-2.mp4
+│   ├── copacabana-1.jpg
+│   ├── machupicchu-1.jpg
+│   └── machupicchu-2.jpg
+├── <span class="text-amber-400">📄 paises.json</span>
+└── <span class="text-amber-400">📄 recuerdos.json</span>
+            </div>
+
+            <h4 class="font-bold text-sm text-slate-800 mb-2">Lógica de Nomenclatura del archivo Multimedia:</h4>
+            <ul class="list-disc pl-5 text-xs text-slate-600 space-y-2 mb-4">
+                <li>La carpeta de recuerdos tiene un <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono">slug</code> (por ejemplo, <code class="font-mono">cristoredentor</code>).</li>
+                <li>Cualquier archivo dentro de la carpeta <code class="font-mono">multimedia/</code> que empiece con <code class="font-mono">cristoredentor</code> será cargado automáticamente para esa galería.</li>
+                <li>Si entras a nivel de <strong>País</strong> (ej. Brasil), la app consolida automáticamente todos los archivos multimedia de todas sus ciudades.</li>
+            </ul>
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-700">
+                <strong>¿Cómo funciona ahora mismo?</strong> Hemos cargado un conjunto de datos ficticios dinámicos pero hiper-realistas para que puedas probar la experiencia interactiva, los filtros por tags y la navegación fluida.
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /* ==========================================================================
+           1. FUENTES DE DATOS JSON (Simulación de paises.json y recuerdos.json)
+           ========================================================================== */
+        
+        // Paises y ciudades (Simulando paises.json)
+        const paisesJSON = [
+            {
+                id: "brasil",
+                nombre: "Brasil",
+                bandera: "🇧🇷",
+                descripcion: "Ritmo, playas doradas, selvas místicas y una de las maravillas modernas.",
+                imagenPortada: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1200&q=80",
+                ciudades: [
+                    { id: "rio-de-janeiro", nombre: "Río de Janeiro", descripcion: "La ciudad maravillosa bajo el Cristo Redentor." },
+                    { id: "sao-paulo", nombre: "São Paulo", descripcion: "La gran metrópolis de arte y rascacielos." },
+                    { id: "salvador", nombre: "Salvador de Bahía", descripcion: "Cuna de la cultura afrobrasileña." }
+                ]
+            },
+            {
+                id: "peru",
+                nombre: "Perú",
+                bandera: "🇵🇪",
+                descripcion: "Tierra de Incas, gastronomía galardonada y paisajes que quitan el aliento en los Andes.",
+                imagenPortada: "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",
+                ciudades: [
+                    { id: "cusco", nombre: "Cusco", descripcion: "La antigua capital imperial inca." },
+                    { id: "lima", nombre: "Lima", descripcion: "Capital gastronómica de América del Sur frente al Pacífico." },
+                    { id: "arequipa", nombre: "Arequipa", descripcion: "La hermosa ciudad blanca custodiada por volcanes." }
+                ]
+            },
+            {
+                id: "francia",
+                nombre: "Francia",
+                bandera: "🇫🇷",
+                descripcion: "Arte atemporal, pueblos de viñedos sacados de cuentos y la capital del romance.",
+                imagenPortada: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
+                ciudades: [
+                    { id: "paris", nombre: "París", descripcion: "La Ciudad de la Luz, museos icónicos y cafés encantadores." },
+                    { id: "niza", nombre: "Niza", descripcion: "El brillo turquesa de la Costa Azul." }
+                ]
+            },
+            {
+                id: "japon",
+                nombre: "Japón",
+                bandera: "🇯🇵",
+                descripcion: "El perfecto equilibrio entre tradiciones milenarias y tecnología futurista.",
+                imagenPortada: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80",
+                ciudades: [
+                    { id: "tokio", nombre: "Tokio", descripcion: "La megaurbe de luces de neón y templos escondidos." },
+                    { id: "kioto", nombre: "Kioto", descripcion: "El corazón tradicional, santuarios sintoístas y geishas." }
+                ]
+            }
+        ];
+
+        // Carpetas de recuerdos (Simulando recuerdos.json)
+        // La propiedad "slug" define cómo se llamarán las fotos y videos en la carpeta "multimedia/"
+        const recuerdosJSON = [
+            // BRASIL -> Río de Janeiro
+            {
+                id: "recuerdo-1",
+                paisId: "brasil",
+                ciudadId: "rio-de-janeiro",
+                titulo: "Cristo Redentor",
+                slug: "cristoredentor",
+                fecha: "Octubre 2024",
+                descripcion: "Subida en el tren del Corcovado para admirar una de las 7 maravillas del mundo moderno.",
+                coordenadas: "Río de Janeiro, Brasil",
+                // Definimos los nombres de los archivos que la app sabe que existen en 'multimedia/'
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1583729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=80", nombre: "cristoredentor-1.jpg" },
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=800&q=80", nombre: "cristoredentor-2.jpg" },
+                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-rio-de-janeiro-41860-large.mp4", nombre: "cristoredentor-video.mp4" }
+                ]
+            },
+            {
+                id: "recuerdo-2",
+                paisId: "brasil",
+                ciudadId: "rio-de-janeiro",
+                titulo: "Atardecer en Copacabana",
+                slug: "copacabana",
+                fecha: "Octubre 2024",
+                descripcion: "Caminata por la icónica rambla de piedras portuguesas bebiendo agua de coco.",
+                coordenadas: "Playa de Copacabana",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=80", nombre: "copacabana-1.jpg" },
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1596422846543-75c6fc18a523?auto=format&fit=crop&w=800&q=80", nombre: "copacabana-2.jpg" }
+                ]
+            },
+            // BRASIL -> Salvador de Bahía
+            {
+                id: "recuerdo-3",
+                paisId: "brasil",
+                ciudadId: "salvador",
+                titulo: "Pelourinho Histórico",
+                slug: "pelourinho",
+                fecha: "Noviembre 2024",
+                descripcion: "Fachadas de colores vibrantes y el sonido de los tambores de Olodum.",
+                coordenadas: "Salvador, Bahía",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1599342006767-463ff8c6d4ba?auto=format&fit=crop&w=800&q=80", nombre: "pelourinho-1.jpg" },
+                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-brazilian-carnival-parade-at-night-42173-large.mp4", nombre: "pelourinho-dance.mp4" }
+                ]
+            },
+            // PERU -> Cusco
+            {
+                id: "recuerdo-4",
+                paisId: "peru",
+                ciudadId: "cusco",
+                titulo: "Ciudadela de Machu Picchu",
+                slug: "machupicchu",
+                fecha: "Mayo 2025",
+                descripcion: "Cumpliendo el sueño de subir a las ruinas sagradas bajo la niebla de la mañana.",
+                coordenadas: "Machu Picchu, Cusco",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=800&q=80", nombre: "machupicchu-1.jpg" },
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1587590227264-0ac64ce63ce8?auto=format&fit=crop&w=800&q=80", name: "machupicchu-2.jpg" },
+                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-clouds-passing-over-machu-picchu-42217-large.mp4", nombre: "machupicchu-time.mp4" }
+                ]
+            },
+            {
+                id: "recuerdo-5",
+                paisId: "peru",
+                ciudadId: "cusco",
+                titulo: "Montaña de Siete Colores",
+                slug: "vinicunca",
+                fecha: "Mayo 2025",
+                descripcion: "La desafiante caminata a 5,200 metros sobre el nivel del mar para ver este milagro de la naturaleza.",
+                coordenadas: "Vinicunca, Cusco",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1590001155093-a3c66ab0c3ff?auto=format&fit=crop&w=800&q=80", nombre: "vinicunca-1.jpg" }
+                ]
+            },
+            // FRANCIA -> Paris
+            {
+                id: "recuerdo-6",
+                paisId: "francia",
+                ciudadId: "paris",
+                titulo: "Picnic junto a la Torre Eiffel",
+                slug: "torreeiffel",
+                fecha: "Julio 2023",
+                descripcion: "Atardecer comiendo quesos y baguettes en Champ de Mars esperando que enciendan las luces de la torre.",
+                coordenadas: "Campo de Marte, París",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1431274172761-fca41d930114?auto=format&fit=crop&w=800&q=80", nombre: "torreeiffel-1.jpg" },
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=800&q=80", nombre: "torreeiffel-2.jpg" },
+                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-eiffel-tower-at-night-with-glowing-lights-42525-large.mp4", nombre: "torreeiffel-luces.mp4" }
+                ]
+            },
+            // JAPON -> Kioto
+            {
+                id: "recuerdo-7",
+                paisId: "japon",
+                ciudadId: "kioto",
+                titulo: "Puertas Torii en Fushimi Inari",
+                slug: "fushimiinari",
+                fecha: "Abril 2026",
+                descripcion: "Senderismo entre miles de puertas Torii de color naranja brillante en el monte sagrado.",
+                coordenadas: "Kioto, Japón",
+                archivos: [
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80", nombre: "fushimiinari-1.jpg" },
+                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=800&q=80", nombre: "fushimiinari-2.jpg" }
+                ]
+            }
+        ];
+
+        /* ==========================================================================
+           2. ROUTER & STATE MANAGEMENT (Gestión del flujo de la App)
+           ========================================================================== */
+        
+        let state = {
+            currentView: 'countries', // 'countries', 'country', 'city', 'memory'
+            selectedCountry: null,     // Objeto de país actual
+            selectedCity: null,        // Objeto de ciudad actual
+            selectedMemory: null,      // Objeto de recuerdo / carpeta actual
+            allMediaPool: [],          // Pool de archivos del visor lightbox activo
+            activeMediaIndex: 0        // Indice activo en lightbox
+        };
+
+        const router = {
+            go(view, params = {}) {
+                state.currentView = view;
+                if (view === 'countries') {
+                    state.selectedCountry = null;
+                    state.selectedCity = null;
+                    state.selectedMemory = null;
+                } else if (view === 'country') {
+                    state.selectedCountry = params.country;
+                    state.selectedCity = null;
+                    state.selectedMemory = null;
+                } else if (view === 'city') {
+                    state.selectedCountry = params.country;
+                    state.selectedCity = params.city;
+                    state.selectedMemory = null;
+                } else if (view === 'memory') {
+                    state.selectedCountry = params.country;
+                    state.selectedCity = params.city;
+                    state.selectedMemory = params.memory;
+                }
+                
+                renderBreadcrumbs();
+                renderView();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        /* ==========================================================================
+           3. SISTEMA DE PLANTILLAS DINÁMICAS (VISTAS)
+           ========================================================================== */
+
+        // PÁGINA 1: TODOS LOS PAÍSES
+        function viewCountries() {
+            let searchHtml = `
+                <div class="mb-12 text-center max-w-2xl mx-auto">
+                    <h2 class="serif-title text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-4">Mis Destinos & Memorias</h2>
+                    <p class="text-slate-500 text-base mb-8">Haz clic en cualquier país para explorar ciudades y revivir tus fotos y videos organizados dinámicamente.</p>
+                    
+                    <div class="relative max-w-md mx-auto">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </div>
+                        <input type="text" id="country-search" oninput="filterCountries()" placeholder="Buscar país o ciudad..." class="block w-full pl-10 pr-4 py-3 border border-slate-200 rounded-2xl bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm transition-all">
+                    </div>
+                </div>
+            `;
+
+            let cardsHtml = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="countries-grid">`;
+            
+            paisesJSON.forEach(pais => {
+                // Contar recuerdos de este país
+                const recuerdosPais = recuerdosJSON.filter(r => r.paisId === pais.id);
+                const totalMedias = recuerdosPais.reduce((acc, current) => acc + current.archivos.length, 0);
+
+                cardsHtml += `
+                    <div class="country-card bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full" data-name="${pais.nombre.toLowerCase()}">
+                        <!-- Portada con Gradiente suave -->
+                        <div class="h-44 overflow-hidden relative group">
+                            <img src="${pais.imagenPortada}" alt="${pais.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
+                            
+                            <!-- Bandera de País -->
+                            <div class="absolute top-4 left-4 text-3xl bg-white/90 backdrop-blur-sm px-2 py-1 rounded-xl shadow-sm">
+                                ${pais.bandera}
+                            </div>
+                        </div>
+                        
+                        <!-- Contenido Tarjeta -->
+                        <div class="p-5 flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 mb-1 flex items-center justify-between">
+                                    <span>${pais.nombre}</span>
+                                </h3>
+                                <p class="text-slate-500 text-xs line-clamp-2 mb-4 leading-relaxed">${pais.descripcion}</p>
+                            </div>
+                            
+                            <!-- Atributos -->
+                            <div class="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500">
+                                <span class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    ${pais.ciudades.length} ${pais.ciudades.length === 1 ? 'Ciudad' : 'Ciudades'}
+                                </span>
+                                <span class="flex items-center gap-1 font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    ${totalMedias} Medias
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Botón de Acción -->
+                        <div class="px-5 pb-5">
+                            <button onclick="router.go('country', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')} })" class="w-full bg-slate-900 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                                Explorar País
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cardsHtml += `</div>`;
+            return searchHtml + cardsHtml;
+        }
+
+        // PÁGINA 2: DETALLE DE PAÍS (CIUDADES Y MULTIMEDIA CONSOLIDADA)
+        function viewCountryDetail() {
+            const pais = state.selectedCountry;
+            
+            // Filtrar recuerdos de este país en particular
+            const recuerdosPais = recuerdosJSON.filter(r => r.paisId === pais.id);
+            
+            // Consolidar todos los archivos multimedia de este país
+            let todoMultimediaPais = [];
+            recuerdosPais.forEach(rec => {
+                rec.archivos.forEach(file => {
+                    todoMultimediaPais.push({
+                        ...file,
+                        ciudadNombre: pais.ciudades.find(c => c.id === rec.ciudadId)?.nombre || "",
+                        recuerdoTitulo: rec.titulo
+                    });
+                });
+            });
+
+            let html = `
+                <!-- Cabecera de País -->
+                <div class="relative rounded-3xl overflow-hidden mb-10 h-72 sm:h-96 shadow-lg">
+                    <img src="${pais.imagenPortada}" alt="${pais.nombre}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent"></div>
+                    <div class="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 right-6 sm:right-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-white">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="text-4xl sm:text-5xl">${pais.bandera}</span>
+                                <span class="text-xs tracking-wider uppercase font-semibold text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">Destino Guardado</span>
+                            </div>
+                            <h2 class="serif-title text-3xl sm:text-5xl font-extrabold tracking-tight">${pais.nombre}</h2>
+                            <p class="text-slate-300 text-sm max-w-xl mt-2 leading-relaxed">${pais.descripcion}</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center min-w-[80px]">
+                                <span class="block text-2xl font-extrabold text-white">${pais.ciudades.length}</span>
+                                <span class="text-[10px] text-slate-300 uppercase tracking-widest">Ciudades</span>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center min-w-[80px]">
+                                <span class="block text-2xl font-extrabold text-white">${todoMultimediaPais.length}</span>
+                                <span class="text-[10px] text-slate-300 uppercase tracking-widest">Archivos</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestañas o Secciones del País -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- COLUMNA IZQUIERDA: CIUDADES DE ESTE PAÍS (De JSON de ciudades) -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                Ciudades Visitadas
+                            </h3>
+                            <p class="text-xs text-slate-400">Selecciona para entrar a carpetas de recuerdos específicas</p>
+                        </div>
+                        
+                        <div class="space-y-3">
+            `;
+
+            pais.ciudades.forEach(ciudad => {
+                // Contar recuerdos para esta ciudad
+                const recuerdosCiudad = recuerdosPais.filter(r => r.ciudadId === ciudad.id);
+                const totalMediasCiudad = recuerdosCiudad.reduce((acc, current) => acc + current.archivos.length, 0);
+
+                html += `
+                    <div onclick="router.go('city', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')}, city: ${JSON.stringify(ciudad).replace(/"/g, '&quot;')} })" class="p-4 bg-white hover:bg-slate-50 border border-slate-100 hover:border-indigo-100 rounded-2xl shadow-sm cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between group">
+                        <div class="pr-4">
+                            <h4 class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors flex items-center gap-2 text-sm sm:text-base">
+                                ${ciudad.nombre}
+                                <span class="text-xs bg-slate-100 text-slate-500 font-normal px-2 py-0.5 rounded-full">${recuerdosCiudad.length} carpetas</span>
+                            </h4>
+                            <p class="text-xs text-slate-500 line-clamp-1 mt-1">${ciudad.descripcion}</p>
+                        </div>
+                        <div class="text-right flex items-center gap-2">
+                            <span class="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg">
+                                ${totalMediasCiudad} files
+                            </span>
+                            <div class="p-1.5 bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 rounded-lg transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: TODOS LOS RECUERDOS (MULTIMEDIA CONSOLIDADA DEL PAÍS) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    Galería Global de ${pais.nombre}
+                                </h3>
+                                <p class="text-xs text-slate-400">Archivos combinados de todas las ciudades de este país</p>
+                            </div>
+                            
+                            <!-- Filtros rápidos para multimedia consolidada -->
+                            <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-medium self-start sm:self-center">
+                                <button onclick="filterMediaPool('all')" class="media-filter-btn active px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-800">Todo</button>
+                                <button onclick="filterMediaPool('imagen')" class="media-filter-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800">Imágenes</button>
+                                <button onclick="filterMediaPool('video')" class="media-filter-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800">Videos</button>
+                            </div>
+                        </div>
+
+                        <!-- Grid de Multimedia Consolidada -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="consolidated-media-grid">
+            `;
+
+            if (todoMultimediaPais.length === 0) {
+                html += `
+                    <div class="col-span-full py-16 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
+                        <p class="text-slate-400 text-sm">Aún no hay archivos multimedia guardados para este país.</p>
+                    </div>
+                `;
+            } else {
+                todoMultimediaPais.forEach((media, idx) => {
+                    const isVideo = media.tipo === 'video';
+                    html += `
+                        <div onclick="openLightbox(${JSON.stringify(todoMultimediaPais).replace(/"/g, '&quot;')}, ${idx})" class="media-item-box group relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 hover:border-indigo-200 cursor-pointer shadow-sm hover:shadow-md transition-all duration-300" data-type="${media.tipo}">
+                            <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=400&q=80' : media.url}" alt="${media.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            
+                            <!-- Badges de la multimedia -->
+                            <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm p-1.5 rounded-lg text-white">
+                                ${isVideo ? 
+                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` : 
+                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
+                                }
+                            </div>
+
+                            <!-- Información abajo -->
+                            <div class="absolute bottom-3 left-3 right-3 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                <p class="text-xs font-bold leading-tight truncate">${media.recuerdoTitulo}</p>
+                                <p class="text-[10px] text-slate-300 flex items-center gap-1 mt-0.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    ${media.ciudadNombre}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        // PÁGINA 3: VISTA DE CIUDAD (LISTADO DE CARPETAS DE RECUERDOS)
+        function viewCityDetail() {
+            const pais = state.selectedCountry;
+            const ciudad = state.selectedCity;
+            
+            // Buscar carpetas de recuerdos correspondientes a esta ciudad
+            const recuerdosCiudad = recuerdosJSON.filter(r => r.paisId === pais.id && r.ciudadId === ciudad.id);
+
+            let html = `
+                <!-- Cabecera de Ciudad -->
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm mb-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-xs">
+                                <span class="bg-indigo-50 px-2.5 py-1 rounded-lg">${pais.nombre}</span>
+                                <span>/</span>
+                                <span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">Ciudad</span>
+                            </div>
+                            <h2 class="serif-title text-3xl sm:text-4xl font-bold text-slate-900">${ciudad.nombre}</h2>
+                            <p class="text-slate-500 text-sm mt-1 max-w-xl leading-relaxed">${ciudad.descripcion}</p>
+                        </div>
+                        <div class="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl text-center self-start sm:self-center border border-indigo-100">
+                            <span class="block text-2xl font-bold leading-none">${recuerdosCiudad.length}</span>
+                            <span class="text-[10px] uppercase font-semibold text-indigo-400">Carpetas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Listado de Carpetas de Recuerdos -->
+                <h3 class="text-lg font-bold text-slate-950 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    Carpetas en recuerdos.json
+                </h3>
+            `;
+
+            if (recuerdosCiudad.length === 0) {
+                html += `
+                    <div class="py-16 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
+                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        </div>
+                        <p class="text-slate-500 font-bold mb-1">No hay carpetas de recuerdos cargadas</p>
+                        <p class="text-slate-400 text-xs">Crea un registro de recuerdo para ${ciudad.nombre} en recuerdos.json</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                
+                recuerdosCiudad.forEach(rec => {
+                    const totalFotos = rec.archivos.filter(f => f.tipo === 'imagen').length;
+                    const totalVideos = rec.archivos.filter(f => f.tipo === 'video').length;
+                    const portadaUrl = rec.archivos[0]?.url || 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=400&q=80';
+
+                    html += `
+                        <div onclick="router.go('memory', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')}, city: ${JSON.stringify(ciudad).replace(/"/g, '&quot;')}, memory: ${JSON.stringify(rec).replace(/"/g, '&quot;')} })" class="bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer transition-all duration-300 flex flex-col justify-between group">
+                            <!-- Folder Tab & Image Container -->
+                            <div class="relative">
+                                <!-- Pestaña del Folder superior estilizado -->
+                                <div class="absolute top-0 left-4 -translate-y-2 h-3.5 w-20 bg-slate-900 rounded-t-lg z-10 group-hover:bg-indigo-600 transition-colors"></div>
+                                
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="${portadaUrl}" alt="${rec.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 to-transparent"></div>
+                                    
+                                    <!-- Badge del SLUG / Carpeta de destino -->
+                                    <div class="absolute bottom-3 left-4 flex items-center gap-1.5 text-[10px] bg-slate-950/60 backdrop-blur-md px-2 py-1 rounded-lg text-indigo-300 border border-indigo-500/30">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                                        multimedia/${rec.slug}-*
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Contenido -->
+                            <div class="p-5 flex-grow">
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">
+                                    <span>${rec.fecha}</span>
+                                    <span class="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                        ${rec.coordenadas}
+                                    </span>
+                                </div>
+                                <h4 class="font-bold text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">${rec.titulo}</h4>
+                                <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mt-2">${rec.descripcion}</p>
+                            </div>
+
+                            <!-- Barra de control multimedia de carpeta -->
+                            <div class="px-5 pb-5 pt-3 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500">
+                                <div class="flex gap-3">
+                                    <span class="flex items-center gap-1" title="Imágenes">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        ${totalFotos}
+                                    </span>
+                                    <span class="flex items-center gap-1" title="Videos">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        ${totalVideos}
+                                    </span>
+                                </div>
+                                <span class="font-bold text-slate-700 flex items-center gap-1 group-hover:text-indigo-600">
+                                    Abrir Carpeta
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            }
+
+            return html;
+        }
+
+        // PÁGINA 4: RECUERDO ESPECÍFICO (ABRIR LA CARPETA MULTIMEDIA)
+        function viewMemoryDetail() {
+            const pais = state.selectedCountry;
+            const ciudad = state.selectedCity;
+            const recuerdo = state.selectedMemory;
+
+            let html = `
+                <!-- Cabecera de la Carpeta -->
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm mb-8">
+                    <div class="flex flex-col md:flex-row justify-between gap-6">
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap items-center gap-2 text-indigo-600 font-medium text-xs">
+                                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${pais.nombre}</span>
+                                <span>/</span>
+                                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${ciudad.nombre}</span>
+                                <span>/</span>
+                                <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                    ${recuerdo.slug}
+                                </span>
+                            </div>
+                            <h2 class="serif-title text-3xl sm:text-4xl font-bold text-slate-900">${recuerdo.titulo}</h2>
+                            <p class="text-slate-500 text-sm leading-relaxed max-w-2xl">${recuerdo.descripcion}</p>
+                        </div>
+                        
+                        <!-- Metadata Card -->
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 self-start min-w-[200px] text-xs space-y-2">
+                            <div class="flex justify-between"><span class="text-slate-400">Fecha:</span> <span class="font-semibold text-slate-700">${recuerdo.fecha}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Coordenadas:</span> <span class="font-semibold text-slate-700">${recuerdo.coordenadas}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Mapeo Virtual:</span> <span class="font-mono text-indigo-600">/multimedia/${recuerdo.slug}-*</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Galería de Archivos que coinciden con el nombre de la carpeta -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Archivos en /multimedia/</h3>
+                            <p class="text-xs text-slate-400">Cargando dinámicamente imágenes y videos asociados a "${recuerdo.slug}"</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            `;
+
+            recuerdo.archivos.forEach((archivo, idx) => {
+                const isVideo = archivo.tipo === 'video';
+                html += `
+                    <div onclick="openLightbox(${JSON.stringify(recuerdo.archivos).replace(/"/g, '&quot;')}, ${idx})" class="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-lg cursor-pointer transition-all duration-300">
+                        <div class="aspect-square bg-slate-100 relative overflow-hidden">
+                            <!-- Contenido Visual -->
+                            <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=400&q=80' : archivo.url}" alt="${archivo.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            
+                            <!-- Badges de Media -->
+                            <div class="absolute top-3 right-3 bg-slate-900/70 backdrop-blur-md p-1.5 rounded-lg text-white">
+                                ${isVideo ? 
+                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` : 
+                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
+                                }
+                            </div>
+                        </div>
+                        
+                        <!-- File Footer -->
+                        <div class="p-3 bg-white flex items-center justify-between border-t border-slate-50">
+                            <span class="font-mono text-[10px] text-slate-500 truncate max-w-[80%]">${archivo.nombre}</span>
+                            <span class="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">${archivo.tipo}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        /* ==========================================================================
+           4. CORE FUNCTIONS (Controlador de vistas y filtros)
+           ========================================================================== */
+
+        function renderView() {
+            const container = document.getElementById('view-content');
+            container.classList.add('opacity-0');
+
+            setTimeout(() => {
+                if (state.currentView === 'countries') {
+                    container.innerHTML = viewCountries();
+                } else if (state.currentView === 'country') {
+                    container.innerHTML = viewCountryDetail();
+                } else if (state.currentView === 'city') {
+                    container.innerHTML = viewCityDetail();
+                } else if (state.currentView === 'memory') {
+                    container.innerHTML = viewMemoryDetail();
+                }
+                container.classList.remove('opacity-0');
+            }, 200);
+        }
+
+        function renderBreadcrumbs() {
+            const breadcrumbs = document.getElementById('breadcrumbs');
+            let html = `
+                <button onclick="router.go('countries')" class="hover:text-indigo-600 transition-colors">Mis Países</button>
+            `;
+
+            if (state.selectedCountry) {
+                html += `
+                    <span class="mx-2 text-slate-300">/</span>
+                    <button onclick="router.go('country', { country: ${JSON.stringify(state.selectedCountry).replace(/"/g, '&quot;')} })" class="hover:text-indigo-600 transition-colors">${state.selectedCountry.nombre}</button>
+                `;
+            }
+
+            if (state.selectedCity) {
+                html += `
+                    <span class="mx-2 text-slate-300">/</span>
+                    <button onclick="router.go('city', { country: ${JSON.stringify(state.selectedCountry).replace(/"/g, '&quot;')}, city: ${JSON.stringify(state.selectedCity).replace(/"/g, '&quot;')} })" class="hover:text-indigo-600 transition-colors">${state.selectedCity.nombre}</button>
+                `;
+            }
+
+            if (state.selectedMemory) {
+                html += `
+                    <span class="mx-2 text-slate-300">/</span>
+                    <span class="text-slate-800 font-semibold truncate max-w-[120px]">${state.selectedMemory.titulo}</span>
+                `;
+            }
+
+            breadcrumbs.innerHTML = html;
+        }
+
+        // Buscador de países interactivo en página principal
+        function filterCountries() {
+            const query = document.getElementById('country-search').value.toLowerCase();
+            const cards = document.querySelectorAll('.country-card');
+
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                if (name.includes(query)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Filtro rápido de tipo de multimedia (Imágenes vs Videos) en detalle de país
+        function filterMediaPool(type) {
+            // Cambiar botón activo visualmente
+            const buttons = document.querySelectorAll('.media-filter-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-800');
+                btn.classList.add('text-slate-500');
+            });
+
+            const activeBtn = event.currentTarget;
+            activeBtn.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-800');
+            activeBtn.classList.remove('text-slate-500');
+
+            // Filtrar elementos de la UI
+            const items = document.querySelectorAll('.media-item-box');
+            items.forEach(item => {
+                if (type === 'all' || item.getAttribute('data-type') === type) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        /* ==========================================================================
+           5. VISOR DE MULTIMEDIA (LIGHTBOX)
+           ========================================================================== */
+
+        function openLightbox(mediaList, startIndex) {
+            state.allMediaPool = mediaList;
+            state.activeMediaIndex = startIndex;
+            
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            
+            updateLightboxContent();
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            
+            // Pausar cualquier video activo al cerrar
+            const mediaBox = document.getElementById('lightbox-media-box');
+            mediaBox.innerHTML = '';
+        }
+
+        function updateLightboxContent() {
+            const activeMedia = state.allMediaPool[state.activeMediaIndex];
+            if (!activeMedia) return;
+
+            const title = document.getElementById('lightbox-title');
+            const subtitle = document.getElementById('lightbox-subtitle');
+            const counter = document.getElementById('lightbox-counter');
+            const mediaBox = document.getElementById('lightbox-media-box');
+
+            title.innerText = activeMedia.nombre;
+            subtitle.innerText = activeMedia.recuerdoTitulo ? `${activeMedia.recuerdoTitulo} (${activeMedia.ciudadNombre})` : `Archivo local en /multimedia/`;
+            counter.innerText = `${state.activeMediaIndex + 1} de ${state.allMediaPool.length}`;
+
+            // Inyectar HTML apropiado según si es Imagen o Video
+            if (activeMedia.tipo === 'video') {
+                mediaBox.innerHTML = `
+                    <video src="${activeMedia.url}" controls autoplay class="max-w-full max-h-[70vh] rounded-xl shadow-2xl" id="lightbox-video-element"></video>
+                `;
+            } else {
+                mediaBox.innerHTML = `
+                    <img src="${activeMedia.url}" alt="${activeMedia.nombre}" class="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl">
+                `;
+            }
+
+            // Crear Thumbnails de navegación rápida
+            const thumbsContainer = document.getElementById('lightbox-thumbs');
+            thumbsContainer.innerHTML = state.allMediaPool.map((m, idx) => {
+                const isActive = idx === state.activeMediaIndex;
+                const isVideo = m.tipo === 'video';
+                return `
+                    <button onclick="setLightboxIndex(${idx})" class="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${isActive ? 'border-indigo-500 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}">
+                        <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=80&q=80' : m.url}" class="w-full h-full object-cover">
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function setLightboxIndex(idx) {
+            state.activeMediaIndex = idx;
+            updateLightboxContent();
+        }
+
+        function prevMedia() {
+            if (state.activeMediaIndex > 0) {
+                state.activeMediaIndex--;
+            } else {
+                state.activeMediaIndex = state.allMediaPool.length - 1; // Volver al final
+            }
+            updateLightboxContent();
+        }
+
+        function nextMedia() {
+            if (state.activeMediaIndex < state.allMediaPool.length - 1) {
+                state.activeMediaIndex++;
+            } else {
+                state.activeMediaIndex = 0; // Volver al inicio
+            }
+            updateLightboxContent();
+        }
+
+        // Teclado del Lightbox
+        document.addEventListener('keydown', (e) => {
+            const lightbox = document.getElementById('lightbox');
+            if (lightbox.classList.contains('hidden')) return;
+
+            if (e.key === 'ArrowLeft') {
+                prevMedia();
+            } else if (e.key === 'ArrowRight') {
+                nextMedia();
+            } else if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+
+        /* ==========================================================================
+           6. ELEMENTOS AUXILIARES (MODAL DE INFO)
+           ========================================================================== */
+        
+        function toggleInfoModal() {
+            const modal = document.getElementById('info-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        /* ==========================================================================
+           7. INITIALIZATION ON RUNTIME
+           ========================================================================== */
+        
+        window.onload = function() {
+            // Inicializar en la vista de paises
+            router.go('countries');
+        };
+    </script>
+</body>
+</html>

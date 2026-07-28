@@ -58,6 +58,19 @@
         /* General Character Card UI */
         .char-card { transition: all 0.2s ease; }
         .char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2); border-color: #6366f1; }
+        .char-card:focus-visible { outline: 3px solid #818cf8; outline-offset: 4px; }
+        .char-card__media { position: relative; background: linear-gradient(180deg, #111827, #0f172a); }
+        .char-card__image { width: 100%; height: 16rem; object-fit: cover; object-position: top; }
+        .char-card__body { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; }
+        .char-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; align-items: start; }
+        .char-card__name { overflow-wrap: anywhere; hyphens: auto; line-height: 1.15; }
+        .char-card__actions { display: grid; grid-template-columns: repeat(3, minmax(2.25rem, 1fr)); gap: 0.35rem; }
+        .char-card__action { min-width: 2.25rem; min-height: 2.25rem; display: inline-flex; align-items: center; justify-content: center; }
+        .char-card__meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .char-card__pill { border: 1px solid #374151; border-radius: 9999px; background: rgba(17, 24, 39, 0.72); padding: 0.25rem 0.55rem; font-size: 0.75rem; line-height: 1rem; color: #d1d5db; }
+        .char-card__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; }
+        .char-card__stat { border-radius: 0.5rem; background: rgba(17, 24, 39, 0.75); border: 1px solid #374151; padding: 0.45rem 0.55rem; font-size: 0.75rem; display: flex; justify-content: space-between; gap: 0.5rem; }
+        @media (min-width: 640px) { .char-card__image { height: 17rem; } }
         
         .modal-overlay { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
         .silhouette { background: radial-gradient(circle at 50% 22%, #4b5563 0 13%, transparent 14%), radial-gradient(circle at 50% 82%, #374151 0 34%, transparent 35%), linear-gradient(135deg, #111827, #1f2937); }
@@ -157,7 +170,7 @@
         <!-- Gallery -->
         <div>
             <h2 class="text-2xl font-bold mb-6">Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
-            <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 <!-- Dynamically populated -->
             </div>
         </div>
@@ -1026,26 +1039,50 @@
                 if (needsMilestone) badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
 
                 const card = document.createElement('div');
-                card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer';
+                card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer min-h-full';
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('role', 'button');
+                card.setAttribute('aria-label', `Abrir ficha de ${getDisplayName(char)}`);
                 card.onclick = () => openCharModal(char.id);
+                card.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCharModal(char.id); } };
                 const inventoryCount = (char.equipment || []).length;
                 const mentalCount = (char.mental || []).length;
+                const worldCount = (normalizeWorldStatus(char.world).milestones || []).length;
+                const destinyCount = (normalizeDestiny(char.destiny).milestones || []).length;
                 card.innerHTML = `
-                    ${badges}
-                    ${getImageHtml(char.image, char.name, 'w-full h-48 object-cover object-top')}
-                    <div class="p-4">
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="font-bold text-lg text-white truncate">${getDisplayName(char)}</h3>
-                            <div class="shrink-0 flex gap-1"><button title="Editar" onclick="event.stopPropagation(); editCharacter('${char.id}')" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">✏️</button><button title="Eliminar" onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">🗑️</button><button title="Inventario" onclick="event.stopPropagation(); openInventoryModal('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">⚔️</button><button title="Mente" onclick="event.stopPropagation(); openMentalModal('${char.id}')" class="bg-purple-950/70 hover:bg-purple-900 border border-purple-700 rounded-lg px-2 py-1 text-sm">🧠</button><button title="Mundo" onclick="event.stopPropagation(); openWorldModal('${char.id}')" class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-sm">🌎</button><button title="Destino" onclick="event.stopPropagation(); openDestinyModal('${char.id}')" class="bg-sky-950/70 hover:bg-sky-900 border border-sky-700 rounded-lg px-2 py-1 text-sm">🔮</button></div>
+                    <div class="char-card__media">
+                        ${badges}
+                        ${getImageHtml(char.image, char.name, 'char-card__image')}
+                    </div>
+                    <div class="char-card__body">
+                        <div class="char-card__header">
+                            <div>
+                                <p class="text-[10px] uppercase tracking-[0.22em] text-gray-500 mb-1">${escapeHtml(char.type || 'Sin tipo')}</p>
+                                <h3 class="char-card__name font-bold text-xl text-white">${escapeHtml(getDisplayName(char))}</h3>
+                            </div>
+                            <div class="char-card__actions" aria-label="Acciones rápidas">
+                                <button title="Editar" aria-label="Editar ${escapeAttr(char.name)}" onclick="event.stopPropagation(); editCharacter('${char.id}')" class="char-card__action bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-sm">✏️</button>
+                                <button title="Eliminar" aria-label="Eliminar ${escapeAttr(char.name)}" onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="char-card__action bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg text-sm">🗑️</button>
+                                <button title="Inventario" aria-label="Abrir inventario de ${escapeAttr(char.name)}" onclick="event.stopPropagation(); openInventoryModal('${char.id}')" class="char-card__action bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg text-sm">⚔️</button>
+                                <button title="Mente" aria-label="Abrir mente de ${escapeAttr(char.name)}" onclick="event.stopPropagation(); openMentalModal('${char.id}')" class="char-card__action bg-purple-950/70 hover:bg-purple-900 border border-purple-700 rounded-lg text-sm">🧠</button>
+                                <button title="Mundo" aria-label="Abrir mundo de ${escapeAttr(char.name)}" onclick="event.stopPropagation(); openWorldModal('${char.id}')" class="char-card__action bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 rounded-lg text-sm">🌎</button>
+                                <button title="Destino" aria-label="Abrir destino de ${escapeAttr(char.name)}" onclick="event.stopPropagation(); openDestinyModal('${char.id}')" class="char-card__action bg-sky-950/70 hover:bg-sky-900 border border-sky-700 rounded-lg text-sm">🔮</button>
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-400 mb-1">Tipo: ${escapeHtml(char.type || '—')}</p>
-                        <p class="text-sm text-primary mb-2">Nivel ${char.level} | ${char.battles} Batallas | ⚔️ ${inventoryCount} | 🧠 ${mentalCount}</p>
-                        ${getAvailableMilestoneSlots(char) > 0 ? '<p class="text-xs text-yellow-300 font-bold animate-pulse mb-2">Agregar un hito</p>' : ''}
-                        <div class="flex gap-2 text-xs">
-                            <span class="text-blue-400">INT: ${getDisplayedStat(char, 'INT')}</span>
-                            <span class="text-red-400">FZA: ${getDisplayedStat(char, 'STR')}</span>
-                            <span class="text-yellow-400">VEL: ${getDisplayedStat(char, 'SPD')}</span>
-                            <span class="text-purple-400">MAG: ${getDisplayedStat(char, 'MAG')}</span>
+                        <div class="char-card__meta">
+                            <span class="char-card__pill text-primary border-indigo-800/70">Nivel ${char.level}</span>
+                            <span class="char-card__pill">${char.battles} batallas</span>
+                            <span class="char-card__pill">⚔️ ${inventoryCount}</span>
+                            <span class="char-card__pill">🧠 ${mentalCount}</span>
+                            <span class="char-card__pill">🌎 ${worldCount}</span>
+                            <span class="char-card__pill">🔮 ${destinyCount}</span>
+                        </div>
+                        ${getAvailableMilestoneSlots(char) > 0 ? '<p class="rounded-lg border border-yellow-500/60 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200 font-bold animate-pulse">Agregar un hito disponible</p>' : ''}
+                        <div class="char-card__stats" aria-label="Atributos principales">
+                            <span class="char-card__stat text-blue-300"><strong>INT</strong><span>${getDisplayedStat(char, 'INT')}</span></span>
+                            <span class="char-card__stat text-red-300"><strong>FZA</strong><span>${getDisplayedStat(char, 'STR')}</span></span>
+                            <span class="char-card__stat text-yellow-300"><strong>VEL</strong><span>${getDisplayedStat(char, 'SPD')}</span></span>
+                            <span class="char-card__stat text-purple-300"><strong>MAG</strong><span>${getDisplayedStat(char, 'MAG')}</span></span>
                         </div>
                     </div>
                 `;

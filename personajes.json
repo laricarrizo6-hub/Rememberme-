@@ -1,1 +1,594 @@
-[]
+[
+  {
+    "nombre": "Aurelia Noctis",
+    "tipo": "Brujas",
+    "historia": "Vaga entre ruinas buscando una promesa olvidada.",
+    "atributos": {
+      "inteligencia": 66,
+      "fuerza": 35,
+      "velocidad": 38,
+      "magia": 81
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/aurelianoctis.jpg"
+  },
+  {
+    "nombre": "Branko Ferox",
+    "tipo": "Vampiros",
+    "historia": "Aprendió a pelear en mercados subterráneos.",
+    "atributos": {
+      "inteligencia": 53,
+      "fuerza": 67,
+      "velocidad": 64,
+      "magia": 84
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 4,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/brankoferox.jpg"
+  },
+  {
+    "nombre": "Celeste Umbría",
+    "tipo": "Monstruo",
+    "historia": "Escucha voces antiguas antes de cada combate.",
+    "atributos": {
+      "inteligencia": 64,
+      "fuerza": 77,
+      "velocidad": 71,
+      "magia": 44
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 0,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/celesteumbria.jpg"
+  },
+  {
+    "nombre": "Darian Voss",
+    "tipo": "Espíritus",
+    "historia": "Carga un mapa tatuado hacia una ciudad imposible.",
+    "atributos": {
+      "inteligencia": 68,
+      "fuerza": 69,
+      "velocidad": 46,
+      "magia": 70
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/darianvoss.jpg"
+  },
+  {
+    "nombre": "Elara Ceniza",
+    "tipo": "Bestias",
+    "historia": "Protege memorias robadas por una orden secreta.",
+    "atributos": {
+      "inteligencia": 77,
+      "fuerza": 58,
+      "velocidad": 88,
+      "magia": 44
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 8,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/elaraceniza.jpg"
+  },
+  {
+    "nombre": "Fausto Lirio",
+    "tipo": "Humanos",
+    "historia": "Persigue duelos para probar una teoría prohibida.",
+    "atributos": {
+      "inteligencia": 66,
+      "fuerza": 62,
+      "velocidad": 85,
+      "magia": 82
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 8,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/faustolirio.jpg"
+  },
+  {
+    "nombre": "Gala Tempestad",
+    "tipo": "Magos",
+    "historia": "Domó una tormenta y ahora le susurra al oído.",
+    "atributos": {
+      "inteligencia": 35,
+      "fuerza": 36,
+      "velocidad": 72,
+      "magia": 40
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/galatempestad.jpg"
+  },
+  {
+    "nombre": "Hugo Valdemar",
+    "tipo": "Brujas",
+    "historia": "Sobrevivió a una traición y volvió con otro nombre.",
+    "atributos": {
+      "inteligencia": 56,
+      "fuerza": 47,
+      "velocidad": 56,
+      "magia": 78
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 12,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/hugovaldemar.jpg"
+  },
+  {
+    "nombre": "Iris Cobalto",
+    "tipo": "Vampiros",
+    "historia": "Colecciona juramentos rotos como trofeos.",
+    "atributos": {
+      "inteligencia": 72,
+      "fuerza": 69,
+      "velocidad": 44,
+      "magia": 41
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 0,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/iriscobalto.jpg"
+  },
+  {
+    "nombre": "Jano Risco",
+    "tipo": "Monstruo",
+    "historia": "Fue guardián de una puerta que ya no existe.",
+    "atributos": {
+      "inteligencia": 56,
+      "fuerza": 75,
+      "velocidad": 49,
+      "magia": 76
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/janorisco.jpg"
+  },
+  {
+    "nombre": "Kaela Sombra",
+    "tipo": "Espíritus",
+    "historia": "Nació durante un eclipse doble y teme dormir.",
+    "atributos": {
+      "inteligencia": 68,
+      "fuerza": 50,
+      "velocidad": 54,
+      "magia": 71
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 0,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/kaelasombra.jpg"
+  },
+  {
+    "nombre": "Loren Axion",
+    "tipo": "Bestias",
+    "historia": "Convirtió su exilio en una escuela de guerra.",
+    "atributos": {
+      "inteligencia": 43,
+      "fuerza": 85,
+      "velocidad": 48,
+      "magia": 81
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 18,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/lorenaxion.jpg"
+  },
+  {
+    "nombre": "Mara Niebla",
+    "tipo": "Humanos",
+    "historia": "Hace pactos solo con enemigos dignos.",
+    "atributos": {
+      "inteligencia": 46,
+      "fuerza": 49,
+      "velocidad": 67,
+      "magia": 84
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/maraniebla.jpg"
+  },
+  {
+    "nombre": "Niko Salvaje",
+    "tipo": "Magos",
+    "historia": "Corre más rápido cuando todos lo dan por vencido.",
+    "atributos": {
+      "inteligencia": 47,
+      "fuerza": 82,
+      "velocidad": 81,
+      "magia": 62
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 8,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/nikosalvaje.jpg"
+  },
+  {
+    "nombre": "Oria Prisma",
+    "tipo": "Brujas",
+    "historia": "Traduce constelaciones en técnicas de batalla.",
+    "atributos": {
+      "inteligencia": 50,
+      "fuerza": 44,
+      "velocidad": 63,
+      "magia": 64
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 12,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/oriaprisma.jpg"
+  },
+  {
+    "nombre": "Pavel Draco",
+    "tipo": "Vampiros",
+    "historia": "Tiene sangre de dragón y paciencia de monje.",
+    "atributos": {
+      "inteligencia": 63,
+      "fuerza": 59,
+      "velocidad": 68,
+      "magia": 53
+    },
+    "puntos_positivos": 0,
+    "puntos_negativos": 0,
+    "nivel": 1,
+    "hitos": {
+      "tangibles": [],
+      "equipamiento": [],
+      "mentales": [],
+      "misticos": {
+        "milestones": []
+      },
+      "sociedades": {
+        "milestones": []
+      },
+      "metadata": {
+        "batallas": 30,
+        "cap": 100,
+        "breakthroughPoints": {
+          "INT": 0,
+          "STR": 0,
+          "SPD": 0,
+          "MAG": 0
+        },
+        "pendingMilestones": 0
+      }
+    },
+    "imagen": "personajes/paveldraco.jpg"
+  }
+]

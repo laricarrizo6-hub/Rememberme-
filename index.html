@@ -95,7 +95,10 @@
                 <h1 class="text-3xl font-bold text-white">Mazo de Personajes</h1>
                 <p class="text-sm text-gray-400 mt-1">Gestiona tu colección desde las cartas; el reclutamiento permanece oculto hasta que lo necesites.</p>
             </div>
-            <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="downloadCharactersJson()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-emerald-500/20">Guardar Progreso (Descargar JSON)</button>
+                <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
+            </div>
         </div>
 
         <!-- Create Character Form -->
@@ -112,12 +115,12 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Tipo de personaje</label>
-                        <input type="text" id="char-type" required placeholder="Ej: dragón, humano, demonio" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                        <select id="char-type" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                            <option value="">Selecciona un tipo...</option>
+                        </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">URL de Imagen <span class="text-xs text-gray-500">(opcional)</span></label>
-                        <input type="url" id="char-image" placeholder="https://..." class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
-                        <p class="text-xs text-gray-500 mt-1">Si no agregas imagen, se mostrará una silueta del personaje.</p>
+                    <div class="rounded-lg border border-gray-800 bg-dark/60 p-3 text-xs text-gray-400">
+                        La imagen se genera automáticamente desde el nombre. Ejemplo: <span class="text-gray-200">Fabián → personajes/fabian.jpg</span>.
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Historia</label>
@@ -368,6 +371,8 @@
         };
 
         // Constants
+        const CHARACTER_TYPES = ['Brujas', 'Vampiros', 'Monstruo', 'Espíritus', 'Bestias', 'Humanos', 'Magos'];
+        const LOCAL_STORAGE_KEY = 'nexusRpgState';
         const ATTRS = [
             { key: 'INT', name: 'Inteligencia', color: 'blue' },
             { key: 'STR', name: 'Fuerza', color: 'red' },
@@ -446,9 +451,118 @@
         };
 
         // Initialization
-        function init() {
-            const saved = localStorage.getItem('nexusRpgState');
-            if (saved) state = JSON.parse(saved);
+        async function init() {
+            hydrateCharacterTypeSelect();
+            state = await loadInitialState();
+            normalizeState();
+            renderGallery();
+            updateBattleButton();
+        }
+
+        function hydrateCharacterTypeSelect() {
+            const select = document.getElementById('char-type');
+            if (!select) return;
+            select.innerHTML = '<option value="">Selecciona un tipo...</option>' + CHARACTER_TYPES.map(type => `<option value="${escapeAttr(type)}">${escapeHtml(type)}</option>`).join('');
+        }
+
+        async function loadInitialState() {
+            const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (saved) {
+                try { return JSON.parse(saved); } catch (error) { console.warn('No se pudo leer el progreso local.', error); }
+            }
+            try {
+                const response = await fetch('personajes.json', { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return importCharactersPayload(data);
+            } catch (error) {
+                console.warn('No se pudo cargar personajes.json; se iniciará una base vacía.', error);
+                return { characters: [], rotationPool: [], relationships: {} };
+            }
+        }
+
+        function normalizeState() {
+            state.characters = Array.isArray(state.characters) ? state.characters : [];
+            state.rotationPool = Array.isArray(state.rotationPool) ? state.rotationPool : [];
+            state.relationships = state.relationships || {};
+            state.characters = state.characters.map(normalizeCharacter);
+        }
+
+        function normalizeCharacter(char = {}) {
+            const stats = char.stats || char.atributos || {};
+            const points = char.points || { pos: char.puntos_positivos, neg: char.puntos_negativos };
+            const hitos = char.hitos || {};
+            const metadata = hitos.metadata || {};
+            const normalized = {
+                id: char.id || generateId(),
+                name: char.name || char.nombre || 'Sin nombre',
+                type: CHARACTER_TYPES.includes(char.type || char.tipo) ? (char.type || char.tipo) : '',
+                story: cleanHandwrittenStory(char.story || char.historia || ''),
+                image: char.image || char.imagen || buildCharacterImagePath(char.name || char.nombre || ''),
+                stats: { INT: Number(stats.INT ?? stats.inteligencia ?? 50), STR: Number(stats.STR ?? stats.fuerza ?? 50), SPD: Number(stats.SPD ?? stats.velocidad ?? 50), MAG: Number(stats.MAG ?? stats.magia ?? 50) },
+                level: Number(char.level ?? char.nivel ?? 1),
+                cap: Number(char.cap || metadata.cap || 100),
+                breakthroughPoints: char.breakthroughPoints || metadata.breakthroughPoints || { INT: 0, STR: 0, SPD: 0, MAG: 0 },
+                points: { pos: Number(points.pos ?? 0), neg: Number(points.neg ?? 0) },
+                battles: Number(char.battles || char.batallas || metadata.batallas || 0),
+                milestones: Array.isArray(char.milestones) ? char.milestones : (Array.isArray(hitos.tangibles) ? hitos.tangibles : []),
+                equipment: Array.isArray(char.equipment) ? char.equipment : (Array.isArray(hitos.equipamiento) ? hitos.equipamiento : []),
+                mental: Array.isArray(char.mental) ? char.mental : (Array.isArray(hitos.mentales) ? hitos.mentales : []),
+                world: char.world || hitos.sociales || hitos.sociedades || {},
+                destiny: char.destiny || hitos.misticos || {},
+                pendingMilestones: Number(char.pendingMilestones || metadata.pendingMilestones || 0),
+                pendingAction: char.pendingAction || null
+            };
+            normalized.milestones = (normalized.milestones || []).map(milestone => isAutomaticSocietyMilestone(milestone) ? { ...normalizeMilestone(milestone), auto: true } : normalizeMilestone(milestone));
+            if (normalized.pendingAction === 'milestone') { normalized.pendingMilestones = Math.max(normalized.pendingMilestones, 1); normalized.pendingAction = null; }
+            normalized.equipment = (normalized.equipment || []).map(normalizeEquipment);
+            normalized.mental = (normalized.mental || []).map(normalizeMentalMilestone);
+            normalized.world = normalizeWorldStatus(normalized.world);
+            normalized.destiny = normalizeDestiny(normalized.destiny);
+            enforceDestinyStats(normalized);
+            return normalized;
+        }
+
+        function importCharactersPayload(data) {
+            if (Array.isArray(data)) return { characters: data, rotationPool: [], relationships: {} };
+            return { characters: data.characters || data.personajes || [], rotationPool: data.rotationPool || [], relationships: data.relationships || {} };
+        }
+
+        function buildCharacterImagePath(name) {
+            const filename = String(name || 'personaje')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `personajes/${filename || 'personaje'}.jpg`;
+        }
+
+        function toExportCharacter(char) {
+            return {
+                nombre: char.name,
+                tipo: char.type,
+                historia: char.story,
+                atributos: { inteligencia: char.stats.INT, fuerza: char.stats.STR, velocidad: char.stats.SPD, magia: char.stats.MAG },
+                puntos_positivos: char.points.pos,
+                puntos_negativos: char.points.neg,
+                nivel: char.level,
+                hitos: { tangibles: char.milestones || [], equipamiento: char.equipment || [], mentales: char.mental || [], misticos: normalizeDestiny(char.destiny), sociedades: normalizeWorldStatus(char.world), metadata: { batallas: char.battles, cap: char.cap, breakthroughPoints: char.breakthroughPoints, pendingMilestones: char.pendingMilestones } },
+                imagen: buildCharacterImagePath(char.name)
+            };
+        }
+
+        function downloadCharactersJson() {
+            const payload = state.characters.map(toExportCharacter);
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'personajes.json';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function legacyNormalizeCharacters() {
             state.characters.forEach(char => {
                 char.pendingMilestones = char.pendingMilestones || 0;
                 char.type = char.type || '';
@@ -468,13 +582,11 @@
                 enforceDestinyStats(char);
             });
             
-            // Render initial view
-            renderGallery();
-            updateBattleButton();
         }
 
         function saveState() {
-            localStorage.setItem('nexusRpgState', JSON.stringify(state));
+            state.characters.forEach(char => { char.image = buildCharacterImagePath(char.name); });
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
             renderGallery();
             updateBattleButton();
         }
@@ -728,8 +840,7 @@
 
 
         function characterTypeOptionsHtml(selected = []) {
-            const types = [...new Set(state.characters.map(c => c.type).filter(Boolean))].sort();
-            return types.map(type => `<option value="${escapeAttr(type)}" ${selected.includes(type) ? 'selected' : ''}>${escapeHtml(type)}</option>`).join('');
+            return CHARACTER_TYPES.map(type => `<option value="${escapeAttr(type)}" ${selected.includes(type) ? 'selected' : ''}>${escapeHtml(type)}</option>`).join('');
         }
 
         function selectedOptions(id) {
@@ -819,9 +930,9 @@
             e.preventDefault();
             const newChar = {
                 id: generateId(),
-                name: document.getElementById('char-name').value,
-                type: document.getElementById('char-type').value.trim(),
-                image: document.getElementById('char-image').value.trim(),
+                name: document.getElementById('char-name').value.trim(),
+                type: document.getElementById('char-type').value,
+                image: buildCharacterImagePath(document.getElementById('char-name').value),
                 story: document.getElementById('char-story').value,
                 stats: {
                     INT: parseInt(document.getElementById('char-int').value),
@@ -843,6 +954,7 @@
                 pendingAction: null // 'points'
             };
             
+            if (!CHARACTER_TYPES.includes(newChar.type)) return alert('Debes elegir un tipo de personaje válido.');
             state.characters.push(newChar);
             saveState();
             e.target.reset();

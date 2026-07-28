@@ -1,1021 +1,1936 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Recuerdos de Viaje</title>
-    <!-- Tailwind CSS -->
+    <title>RPG Card Battler</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Inter & Playfair Display para un look premium) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Lucide Icons (Inline SVGs se usarán para mayor fidelidad) -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        primary: '#6366f1',
+                        danger: '#ef4444',
+                        success: '#10b981'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: var(--tw-colors-darker); color: #e5e5e5; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+        /* Card Flip Utilities */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .transition-transform-duration { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
+        
+        .card-container { width: 100%; height: 320px; cursor: pointer; }
+        .card-flipper { position: relative; width: 100%; height: 100%; }
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%; border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
         }
-        .serif-title {
-            font-family: 'Playfair Display', serif;
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        .card-back { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; border: 2px solid #374151; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+        
+        .flipped .card-flipper { transform: rotateY(180deg); }
+        .card-front { transform: rotateY(180deg); } /* Front is initially rotated so Back shows first in battle */
+        .card-back { transform: rotateY(0deg); }
+
+        /* General Character Card UI */
+        .char-card { transition: all 0.2s ease; }
+        .char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2); border-color: #6366f1; }
+        
+        .modal-overlay { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+        .silhouette { background: radial-gradient(circle at 50% 22%, #4b5563 0 13%, transparent 14%), radial-gradient(circle at 50% 82%, #374151 0 34%, transparent 35%), linear-gradient(135deg, #111827, #1f2937); }
+        .hidden { display: none !important; }
+        .inventory-input { width: 100%; background: #121212; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: white; font-size: 0.875rem; }
+        .mental-input { width: 100%; background: #121212; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: white; font-size: 0.875rem; }
+        .world-input { width: 100%; background: #121212; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: white; font-size: 0.875rem; }
+        .destiny-input { width: 100%; background: #121212; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: white; font-size: 0.875rem; }
+        .inventory-label { display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.25rem; }
+        .milestone-ready { box-shadow: 0 0 18px rgba(250, 204, 21, 0.8), inset 0 0 14px rgba(250, 204, 21, 0.2); animation: milestone-glow 1.4s ease-in-out infinite alternate; }
+        @keyframes milestone-glow { from { filter: brightness(1); transform: translateY(0); } to { filter: brightness(1.35); transform: translateY(-1px); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-darker min-h-screen text-gray-200">
 
-    <!-- APP CONTAINER -->
-    <div id="app" class="flex-grow flex flex-col">
-        <!-- HEADER -->
-        <header class="bg-white border-b border-slate-100 sticky top-0 z-40 backdrop-blur-md bg-white/90">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                <!-- Logo & Title -->
-                <button onclick="router.go('countries')" class="flex items-center gap-3 group focus:outline-none">
-                    <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-100 group-hover:scale-105 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                    </div>
-                    <div class="text-left">
-                        <h1 class="text-xl font-bold tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">Bitácora de Viajes</h1>
-                        <p class="text-xs text-slate-400">Tus memorias organizadas de forma dinámica</p>
-                    </div>
-                </button>
-
-                <!-- Search / Quick Nav -->
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleInfoModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" title="Información sobre la estructura de archivos">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    </button>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Multimedia Localizada
-                    </span>
+    <nav class="bg-card border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <span class="text-2xl">⚔️</span>
+                    <span class="font-bold text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">NEXUS RPG</span>
                 </div>
-            </div>
-        </header>
-
-        <!-- BREADCRUMBS -->
-        <div class="bg-white border-b border-slate-100 py-3">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <nav class="flex text-xs font-medium text-slate-500" id="breadcrumbs">
-                    <!-- Se llena dinámicamente -->
-                </nav>
+                <div class="flex space-x-4">
+                    <button id="nav-management" class="text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('management')">Gestión de Personajes</button>
+                    <button id="nav-battle" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('battle')">Zona de Batalla</button>
+                </div>
             </div>
         </div>
+    </nav>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div id="view-content" class="transition-opacity duration-200">
-                <!-- Las pantallas dinámicas se cargarán aquí -->
-            </div>
-        </main>
-
-        <!-- FOOTER -->
-        <footer class="bg-white border-t border-slate-100 py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-xs text-slate-400">Organización automática basada en nomenclaturas de carpetas (`multimedia/{carpeta_recuerdo}`) </p>
-                <div class="flex gap-4 text-xs text-slate-400">
-                    <span>Fotos y Videos Sincronizados</span>
-                    <span>•</span>
-                    <span>Modo Dinámico Activo</span>
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <!-- LIGHTBOX / MEDIA VIEWER MODAL -->
-    <div id="lightbox" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md hidden z-50 flex-col justify-between p-4 sm:p-6 transition-all duration-300">
-        <!-- Lightbox Header -->
-        <div class="flex justify-between items-center w-full text-white z-10">
+    <main id="section-management" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-                <h3 id="lightbox-title" class="text-lg font-bold">Título del recuerdo</h3>
-                <p id="lightbox-subtitle" class="text-xs text-slate-400">Detalle del archivo</p>
+                <h1 class="text-3xl font-bold text-white">Mazo de Personajes</h1>
+                <p class="text-sm text-gray-400 mt-1">Gestiona tu colección desde las cartas; el reclutamiento permanece oculto hasta que lo necesites.</p>
             </div>
-            <button onclick="closeLightbox()" class="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
+        </div>
+
+        <!-- Create Character Form -->
+        <div id="create-char-panel" class="hidden bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
+            <div class="flex items-center justify-between gap-4 mb-4 border-b border-gray-700 pb-2">
+                <h2 class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
+                <button onclick="toggleCreateForm(false)" class="text-gray-400 hover:text-white text-sm">Ocultar</button>
+            </div>
+            <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+                        <input type="text" id="char-name" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Tipo de personaje</label>
+                        <input type="text" id="char-type" required placeholder="Ej: dragón, humano, demonio" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">URL de Imagen <span class="text-xs text-gray-500">(opcional)</span></label>
+                        <input type="url" id="char-image" placeholder="https://..." class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                        <p class="text-xs text-gray-500 mt-1">Si no agregas imagen, se mostrará una silueta del personaje.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Historia</label>
+                        <textarea id="char-story" required rows="3" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary"></textarea>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Atributos Base (1 - 100)</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-blue-400 mb-1">Inteligencia</label>
+                            <input type="number" id="char-int" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-red-400 mb-1">Fuerza</label>
+                            <input type="number" id="char-str" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-yellow-400 mb-1">Velocidad</label>
+                            <input type="number" id="char-spd" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-purple-400 mb-1">Magia</label>
+                            <input type="number" id="char-mag" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Gallery -->
+        <div>
+            <h2 class="text-2xl font-bold mb-6">Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
+            <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </main>
+
+    <main id="section-battle" class="hidden max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col items-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Arena de Combate</h2>
+            <p class="text-gray-400 mb-6 text-center">Se requieren al menos 8 personajes. Emparejamiento aleatorio por rotación obligatoria.</p>
+            <button id="btn-start-battle" onclick="startBattle()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-full text-lg transition shadow-[0_0_15px_rgba(220,38,38,0.5)] transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                Iniciar Batalla 4v4
             </button>
         </div>
 
-        <!-- Lightbox Content Area -->
-        <div class="flex-grow flex items-center justify-between gap-4 max-h-[80vh] my-auto">
-            <!-- Prev Button -->
-            <button onclick="prevMedia()" class="p-3 bg-white/5 hover:bg-white/15 text-white rounded-full transition-all hover:scale-105">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-
-            <!-- Media Container -->
-            <div class="flex-grow flex justify-center items-center h-full max-w-4xl mx-auto overflow-hidden">
-                <div id="lightbox-media-box" class="max-w-full max-h-full flex justify-center items-center">
-                    <!-- Se inyecta la tag img o video dinámicamente -->
+        <div id="battle-arena" class="hidden flex flex-col gap-8">
+            <!-- Esquina Roja -->
+            <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6">
+                <h3 class="text-xl font-bold text-red-500 mb-4 text-center">Esquina Roja</h3>
+                <div id="red-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+            
+            <!-- VS and Status -->
+            <div class="flex justify-center items-center flex-col gap-2">
+                <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center font-bold text-2xl border-2 border-gray-600 shadow-xl z-10">VS</div>
+                <div id="battle-log" class="w-full max-w-2xl bg-black/50 p-4 rounded-lg border border-gray-800 text-center text-sm space-y-2 h-32 overflow-y-auto">
+                    <!-- Logs -->
                 </div>
             </div>
 
-            <!-- Next Button -->
-            <button onclick="nextMedia()" class="p-3 bg-white/5 hover:bg-white/15 text-white rounded-full transition-all hover:scale-105">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-        </div>
-
-        <!-- Lightbox Footer / Carousel Indicators -->
-        <div class="w-full text-center text-xs text-slate-400 py-2 z-10 flex flex-col items-center gap-2">
-            <span id="lightbox-counter">1 de 12</span>
-            <div id="lightbox-thumbs" class="flex gap-2 overflow-x-auto max-w-full py-1 px-4">
-                <!-- Mini miniaturas opcionales -->
+            <!-- Esquina Azul -->
+            <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-6">
+                <h3 class="text-xl font-bold text-blue-500 mb-4 text-center">Esquina Azul</h3>
+                <div id="blue-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- STRUCTURE EXPLANATION MODAL -->
-    <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="toggleInfoModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                Estructura de Carpetas y JSON
-            </h3>
-            <p class="text-sm text-slate-600 mb-4">
-                Esta app está diseñada para leer archivos estructurados dinámicamente. La estructura de tus archivos JSON y carpetas debe ser la siguiente:
-            </p>
             
-            <div class="bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-xs overflow-x-auto mb-4">
-<span class="text-indigo-400">📂 recuerdos-app/</span>
-├── <span class="text-emerald-400">📁 multimedia/</span>  <span class="text-slate-400">// ¡Aquí metes TODO junto!</span>
-│   ├── cristoredentor-1.jpg
-│   ├── cristoredentor-2.mp4
-│   ├── copacabana-1.jpg
-│   ├── machupicchu-1.jpg
-│   └── machupicchu-2.jpg
-├── <span class="text-amber-400">📄 paises.json</span>
-└── <span class="text-amber-400">📄 recuerdos.json</span>
+            <!-- Resolution Actions -->
+            <div id="battle-actions" class="hidden flex justify-center mt-4">
+                <button onclick="finishBattle()" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-bold">Finalizar y Guardar Resultados</button>
             </div>
+        </div>
+    </main>
 
-            <h4 class="font-bold text-sm text-slate-800 mb-2">Lógica de Nomenclatura del archivo Multimedia:</h4>
-            <ul class="list-disc pl-5 text-xs text-slate-600 space-y-2 mb-4">
-                <li>La carpeta de recuerdos tiene un <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono">slug</code> (por ejemplo, <code class="font-mono">cristoredentor</code>).</li>
-                <li>Cualquier archivo dentro de la carpeta <code class="font-mono">multimedia/</code> que empiece con <code class="font-mono">cristoredentor</code> será cargado automáticamente para esa galería.</li>
-                <li>Si entras a nivel de <strong>País</strong> (ej. Brasil), la app consolida automáticamente todos los archivos multimedia de todas sus ciudades.</li>
-            </ul>
-            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-700">
-                <strong>¿Cómo funciona ahora mismo?</strong> Hemos cargado un conjunto de datos ficticios dinámicos pero hiper-realistas para que puedas probar la experiencia interactiva, los filtros por tags y la navegación fluida.
+    <!-- Character Detail / Action Modal -->
+    <div id="char-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-3xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
+                <h3 id="modal-name" class="text-xl font-bold"></h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="w-full md:w-1/3">
+                        <img id="modal-img" src="" alt="Avatar" class="w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md">
+                        <div class="mt-4 bg-gray-800 rounded p-3 text-center">
+                            <span class="block text-xs text-gray-400 uppercase">Nivel</span>
+                            <span id="modal-level" class="text-2xl font-bold text-primary"></span>
+                        </div>
+                        <div id="modal-milestone-buttons" class="mt-4 grid grid-cols-2 gap-2">
+                            <!-- Injected milestone access buttons -->
+                        </div>
+                        <div class="mt-4 bg-gray-900/70 rounded-lg border border-gray-700 p-4">
+                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white mb-3">Atributos principales</h4>
+                            <div id="modal-stats" class="grid grid-cols-1 gap-3">
+                                <!-- Injected stats -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-4">
+                        <div class="bg-dark rounded-lg border border-gray-700 p-4 shadow-inner">
+                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Lore redactado a mano</h4>
+                            <div class="text-sm text-gray-200 leading-relaxed italic whitespace-pre-line" id="modal-story"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
+                                <span class="text-xs text-gray-400">Batallas</span><br>
+                                <span id="modal-battles" class="font-bold"></span>
+                            </div>
+                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
+                                <span class="text-xs text-gray-400">Puntos Pendientes (Pos/Neg)</span><br>
+                                <span class="font-bold text-success" id="modal-pos"></span> / <span class="font-bold text-danger" id="modal-neg"></span>
+                            </div>
+                        </div>
+
+                        <!-- Action Areas (Points / Milestones) -->
+                        <div id="modal-action-area" class="hidden bg-indigo-950/30 border border-indigo-500/50 rounded-lg p-4 mt-4">
+                            <!-- Injected dynamically -->
+                        </div>
+
+
+                        <div class="bg-gray-900/70 rounded-lg border border-gray-700 p-4">
+                            <div class="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white">Sociedades</h4>
+                                    <p class="text-xs text-gray-500 mt-1">Aliados, rivales y traiciones se revisan aquí.</p>
+                                </div>
+                                <button onclick="toggleSocieties()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-3 py-2 rounded-lg border border-gray-600 transition">Sociedades</button>
+                            </div>
+                            <div id="modal-societies" class="hidden space-y-3 text-sm">
+                                <!-- Relationship tags -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- Inventory / Equipment Modal -->
+    <div id="inventory-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
+                <div>
+                    <h3 id="inventory-title" class="text-xl font-bold">⚔️ Inventario</h3>
+                    <p class="text-xs text-gray-400 mt-1">Equipamiento, reliquias, monturas y territorios con reglas personalizables.</p>
+                </div>
+                <button onclick="closeInventoryModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <form id="equipment-form" class="bg-gray-900/70 border border-gray-700 rounded-xl p-4">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h4 class="font-bold text-white">Crear o editar posesión</h4>
+                            <p class="text-xs text-gray-500">El usuario define potencia, excepciones, afinidades y condicionales libremente.</p>
+                        </div>
+                        <button type="button" onclick="resetEquipmentForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button>
+                    </div>
+                    <input type="hidden" id="eq-id">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><label class="inventory-label">Tipo</label><select id="eq-type" class="inventory-input" onchange="syncEquipmentFormByType()"><option>Arma</option><option>Armadura</option><option>Artefacto / Reliquia</option><option>Montura</option><option>Territorio</option></select></div>
+                        <div><label class="inventory-label">Nombre</label><input id="eq-name" required placeholder="Ej: Espada del Alba" class="inventory-input"></div>
+                        <div><label class="inventory-label">Imagen</label><input id="eq-image" placeholder="URL de imagen opcional" class="inventory-input"></div>
+                    </div>
+                    <textarea id="eq-notes" rows="3" placeholder="Narrativa redactada por el usuario..." class="inventory-input mt-4"></textarea>
+                    <div id="eq-dynamic" class="space-y-4 mt-4"></div>
+                    <button class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded-lg">Guardar posesión</button>
+                </form>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="equipment-list"></div>
+                <div class="bg-emerald-950/30 border border-emerald-700/50 rounded-xl p-4 text-sm text-emerald-100">
+                    <strong>Reglas inquebrantables:</strong> las Monturas/Vehículos solo aumentan Velocidad y su bono no puede anularse ni reducirse. El Refugio/Territorio limita cualquier reducción total de atributos del personaje a un máximo del 15%.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mental / Personal Development Modal -->
+    <div id="mental-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-purple-700/60 overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
+                <div>
+                    <h3 id="mental-title" class="text-xl font-bold">🧠 Desarrollo</h3>
+                    <p class="text-xs text-gray-400 mt-1">Acontecimiento, Sabiduría, Miedo, Debilidad y Mutación como estados permanentes del personaje.</p>
+                </div>
+                <button onclick="closeMentalModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <form id="mental-form" class="bg-purple-950/20 border border-purple-700/50 rounded-xl p-4">
+                    <div class="flex items-center justify-between gap-3 mb-4"><div><h4 class="font-bold text-white">Crear o editar hito mental</h4><p class="text-xs text-gray-500">Configura redistribuciones, detonantes de miedo y agravantes de debilidad.</p></div><button type="button" onclick="resetMentalForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
+                    <input type="hidden" id="mental-id">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="inventory-label">Tipo</label><select id="mental-type" class="mental-input" onchange="syncMentalFormByType()"><option>Acontecimiento</option><option>Sabiduría</option><option>Miedo</option><option>Debilidad</option><option>Mutación</option></select></div><div><label class="inventory-label">Nombre</label><input id="mental-name" required placeholder="Ej: Noche del Abismo" class="mental-input"></div><div><label class="inventory-label">Imagen</label><input id="mental-image" placeholder="URL de imagen opcional" class="mental-input"></div></div>
+                    <textarea id="mental-notes" rows="3" placeholder="Narrativa redactada por el usuario..." class="mental-input mt-4"></textarea>
+                    <div id="mental-dynamic" class="space-y-4 mt-4"></div>
+                    <button class="mt-4 w-full bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 rounded-lg">Guardar hito mental</button>
+                </form>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="mental-list"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- World / Social Status Modal -->
+    <div id="world-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-emerald-700/60 overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900"><div><h3 id="world-title" class="text-xl font-bold">🌎 Mundo</h3><p class="text-xs text-gray-400 mt-1">Compañeros, clanes, apodos, misiones y deudas que modifican la batalla.</p></div><button onclick="closeWorldModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button></div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <form id="world-form" class="bg-emerald-950/20 border border-emerald-700/50 rounded-xl p-4 space-y-4">
+                    <div class="flex items-center justify-between gap-3"><div><h4 class="font-bold text-white">Agregar un hito de mundo</h4><p class="text-xs text-gray-500">Cada envío consume 1 hito disponible; no puedes guardar varios hitos en una sola vez.</p></div><button type="button" onclick="resetWorldForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
+                    <input type="hidden" id="world-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Tipo de hito</label><select id="world-type" class="world-input" onchange="syncWorldFormByType()"><option>Compañero</option><option>Clan</option><option>Apodo</option><option>Misión Objetivo</option><option>Deuda</option></select></div><div><label class="inventory-label">Nombre / título</label><input id="world-name" required class="world-input" placeholder="Nombre del hito"></div></div>
+                    <textarea id="world-narrative" rows="3" required placeholder="Narrativa redactada por el usuario..." class="world-input"></textarea>
+                    <div id="world-dynamic" class="space-y-4"></div>
+                    <button class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg">Guardar 1 hito de mundo</button>
+                </form>
+                <div id="world-summary" class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Destiny / Supernatural Modal -->
+    <div id="destiny-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-4xl rounded-xl shadow-2xl border border-sky-700/60 overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900"><div><h3 id="destiny-title" class="text-xl font-bold">🔮 Destino</h3><p class="text-xs text-gray-400 mt-1">Maldiciones, bendiciones y juramentos fijan o alteran atributos.</p></div><button onclick="closeDestinyModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button></div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
+                <form id="destiny-form" class="space-y-4 bg-sky-950/20 border border-sky-700/50 rounded-xl p-4">
+                    <div class="flex items-center justify-between gap-3"><div><h4 class="font-bold text-white">Agregar un hito de destino</h4><p class="text-xs text-gray-500">Maldición, bendición o juramento se guardan de a uno y consumen 1 hito disponible.</p></div><button type="button" onclick="resetDestinyForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
+                    <input type="hidden" id="destiny-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Tipo</label><select id="destiny-type" class="destiny-input" onchange="syncDestinyFormByType()"><option>Maldición</option><option>Bendición</option><option>Juramento</option></select></div><div><label class="inventory-label">Nombre</label><input id="destiny-name" required class="destiny-input" placeholder="Nombre narrativo"></div></div>
+                    <textarea id="destiny-notes" rows="3" required placeholder="Narrativa..." class="destiny-input"></textarea>
+                    <div id="destiny-dynamic" class="space-y-4"></div>
+                    <button class="w-full bg-sky-700 hover:bg-sky-600 text-white font-bold py-2 rounded-lg">Guardar 1 hito de destino</button>
+                </form>
+                <div id="destiny-list" class="grid grid-cols-1 gap-4 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        /* ==========================================================================
-           1. FUENTES DE DATOS JSON (Simulación de paises.json y recuerdos.json)
-           ========================================================================== */
-        
-        // Paises y ciudades (Simulando paises.json)
-        const paisesJSON = [
-            {
-                id: "brasil",
-                nombre: "Brasil",
-                bandera: "🇧🇷",
-                descripcion: "Ritmo, playas doradas, selvas místicas y una de las maravillas modernas.",
-                imagenPortada: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1200&q=80",
-                ciudades: [
-                    { id: "rio-de-janeiro", nombre: "Río de Janeiro", descripcion: "La ciudad maravillosa bajo el Cristo Redentor." },
-                    { id: "sao-paulo", nombre: "São Paulo", descripcion: "La gran metrópolis de arte y rascacielos." },
-                    { id: "salvador", nombre: "Salvador de Bahía", descripcion: "Cuna de la cultura afrobrasileña." }
-                ]
-            },
-            {
-                id: "peru",
-                nombre: "Perú",
-                bandera: "🇵🇪",
-                descripcion: "Tierra de Incas, gastronomía galardonada y paisajes que quitan el aliento en los Andes.",
-                imagenPortada: "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",
-                ciudades: [
-                    { id: "cusco", nombre: "Cusco", descripcion: "La antigua capital imperial inca." },
-                    { id: "lima", nombre: "Lima", descripcion: "Capital gastronómica de América del Sur frente al Pacífico." },
-                    { id: "arequipa", nombre: "Arequipa", descripcion: "La hermosa ciudad blanca custodiada por volcanes." }
-                ]
-            },
-            {
-                id: "francia",
-                nombre: "Francia",
-                bandera: "🇫🇷",
-                descripcion: "Arte atemporal, pueblos de viñedos sacados de cuentos y la capital del romance.",
-                imagenPortada: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
-                ciudades: [
-                    { id: "paris", nombre: "París", descripcion: "La Ciudad de la Luz, museos icónicos y cafés encantadores." },
-                    { id: "niza", nombre: "Niza", descripcion: "El brillo turquesa de la Costa Azul." }
-                ]
-            },
-            {
-                id: "japon",
-                nombre: "Japón",
-                bandera: "🇯🇵",
-                descripcion: "El perfecto equilibrio entre tradiciones milenarias y tecnología futurista.",
-                imagenPortada: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80",
-                ciudades: [
-                    { id: "tokio", nombre: "Tokio", descripcion: "La megaurbe de luces de neón y templos escondidos." },
-                    { id: "kioto", nombre: "Kioto", descripcion: "El corazón tradicional, santuarios sintoístas y geishas." }
-                ]
-            }
-        ];
-
-        // Carpetas de recuerdos (Simulando recuerdos.json)
-        // La propiedad "slug" define cómo se llamarán las fotos y videos en la carpeta "multimedia/"
-        const recuerdosJSON = [
-            // BRASIL -> Río de Janeiro
-            {
-                id: "recuerdo-1",
-                paisId: "brasil",
-                ciudadId: "rio-de-janeiro",
-                titulo: "Cristo Redentor",
-                slug: "cristoredentor",
-                fecha: "Octubre 2024",
-                descripcion: "Subida en el tren del Corcovado para admirar una de las 7 maravillas del mundo moderno.",
-                coordenadas: "Río de Janeiro, Brasil",
-                // Definimos los nombres de los archivos que la app sabe que existen en 'multimedia/'
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1583729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=80", nombre: "cristoredentor-1.jpg" },
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=800&q=80", nombre: "cristoredentor-2.jpg" },
-                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-rio-de-janeiro-41860-large.mp4", nombre: "cristoredentor-video.mp4" }
-                ]
-            },
-            {
-                id: "recuerdo-2",
-                paisId: "brasil",
-                ciudadId: "rio-de-janeiro",
-                titulo: "Atardecer en Copacabana",
-                slug: "copacabana",
-                fecha: "Octubre 2024",
-                descripcion: "Caminata por la icónica rambla de piedras portuguesas bebiendo agua de coco.",
-                coordenadas: "Playa de Copacabana",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=80", nombre: "copacabana-1.jpg" },
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1596422846543-75c6fc18a523?auto=format&fit=crop&w=800&q=80", nombre: "copacabana-2.jpg" }
-                ]
-            },
-            // BRASIL -> Salvador de Bahía
-            {
-                id: "recuerdo-3",
-                paisId: "brasil",
-                ciudadId: "salvador",
-                titulo: "Pelourinho Histórico",
-                slug: "pelourinho",
-                fecha: "Noviembre 2024",
-                descripcion: "Fachadas de colores vibrantes y el sonido de los tambores de Olodum.",
-                coordenadas: "Salvador, Bahía",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1599342006767-463ff8c6d4ba?auto=format&fit=crop&w=800&q=80", nombre: "pelourinho-1.jpg" },
-                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-brazilian-carnival-parade-at-night-42173-large.mp4", nombre: "pelourinho-dance.mp4" }
-                ]
-            },
-            // PERU -> Cusco
-            {
-                id: "recuerdo-4",
-                paisId: "peru",
-                ciudadId: "cusco",
-                titulo: "Ciudadela de Machu Picchu",
-                slug: "machupicchu",
-                fecha: "Mayo 2025",
-                descripcion: "Cumpliendo el sueño de subir a las ruinas sagradas bajo la niebla de la mañana.",
-                coordenadas: "Machu Picchu, Cusco",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=800&q=80", nombre: "machupicchu-1.jpg" },
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1587590227264-0ac64ce63ce8?auto=format&fit=crop&w=800&q=80", name: "machupicchu-2.jpg" },
-                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-clouds-passing-over-machu-picchu-42217-large.mp4", nombre: "machupicchu-time.mp4" }
-                ]
-            },
-            {
-                id: "recuerdo-5",
-                paisId: "peru",
-                ciudadId: "cusco",
-                titulo: "Montaña de Siete Colores",
-                slug: "vinicunca",
-                fecha: "Mayo 2025",
-                descripcion: "La desafiante caminata a 5,200 metros sobre el nivel del mar para ver este milagro de la naturaleza.",
-                coordenadas: "Vinicunca, Cusco",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1590001155093-a3c66ab0c3ff?auto=format&fit=crop&w=800&q=80", nombre: "vinicunca-1.jpg" }
-                ]
-            },
-            // FRANCIA -> Paris
-            {
-                id: "recuerdo-6",
-                paisId: "francia",
-                ciudadId: "paris",
-                titulo: "Picnic junto a la Torre Eiffel",
-                slug: "torreeiffel",
-                fecha: "Julio 2023",
-                descripcion: "Atardecer comiendo quesos y baguettes en Champ de Mars esperando que enciendan las luces de la torre.",
-                coordenadas: "Campo de Marte, París",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1431274172761-fca41d930114?auto=format&fit=crop&w=800&q=80", nombre: "torreeiffel-1.jpg" },
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=800&q=80", nombre: "torreeiffel-2.jpg" },
-                    { tipo: "video", url: "https://assets.mixkit.co/videos/preview/mixkit-eiffel-tower-at-night-with-glowing-lights-42525-large.mp4", nombre: "torreeiffel-luces.mp4" }
-                ]
-            },
-            // JAPON -> Kioto
-            {
-                id: "recuerdo-7",
-                paisId: "japon",
-                ciudadId: "kioto",
-                titulo: "Puertas Torii en Fushimi Inari",
-                slug: "fushimiinari",
-                fecha: "Abril 2026",
-                descripcion: "Senderismo entre miles de puertas Torii de color naranja brillante en el monte sagrado.",
-                coordenadas: "Kioto, Japón",
-                archivos: [
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80", nombre: "fushimiinari-1.jpg" },
-                    { tipo: "imagen", url: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=800&q=80", nombre: "fushimiinari-2.jpg" }
-                ]
-            }
-        ];
-
-        /* ==========================================================================
-           2. ROUTER & STATE MANAGEMENT (Gestión del flujo de la App)
-           ========================================================================== */
-        
+        // State Management
         let state = {
-            currentView: 'countries', // 'countries', 'country', 'city', 'memory'
-            selectedCountry: null,     // Objeto de país actual
-            selectedCity: null,        // Objeto de ciudad actual
-            selectedMemory: null,      // Objeto de recuerdo / carpeta actual
-            allMediaPool: [],          // Pool de archivos del visor lightbox activo
-            activeMediaIndex: 0        // Indice activo en lightbox
+            characters: [],
+            rotationPool: [],
+            relationships: {}
         };
 
-        const router = {
-            go(view, params = {}) {
-                state.currentView = view;
-                if (view === 'countries') {
-                    state.selectedCountry = null;
-                    state.selectedCity = null;
-                    state.selectedMemory = null;
-                } else if (view === 'country') {
-                    state.selectedCountry = params.country;
-                    state.selectedCity = null;
-                    state.selectedMemory = null;
-                } else if (view === 'city') {
-                    state.selectedCountry = params.country;
-                    state.selectedCity = params.city;
-                    state.selectedMemory = null;
-                } else if (view === 'memory') {
-                    state.selectedCountry = params.country;
-                    state.selectedCity = params.city;
-                    state.selectedMemory = params.memory;
-                }
-                
-                renderBreadcrumbs();
-                renderView();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Constants
+        const ATTRS = [
+            { key: 'INT', name: 'Inteligencia', color: 'blue' },
+            { key: 'STR', name: 'Fuerza', color: 'red' },
+            { key: 'SPD', name: 'Velocidad', color: 'yellow' },
+            { key: 'MAG', name: 'Magia', color: 'purple' }
+        ];
+        
+        const MILESTONE_CATEGORIES = [
+            {
+                label: '⚔️ Equipamiento y Posesiones',
+                types: [
+                    { name: 'Arma', hint: 'Arma nueva o mejora de una existente.' },
+                    { name: 'Armadura', hint: 'Protección física o mágica.' },
+                    { name: 'Artefacto / Reliquia', hint: 'Objeto de poder que no es arma ni armadura.' },
+                    { name: 'Montura / Vehículo', hint: 'Transporte o bestia de carga.' },
+                    { name: 'Refugio / Territorio', hint: 'Lugar que ahora reclama como propio.' }
+                ]
+            },
+            {
+                label: '🧠 Desarrollo Personal y Mental',
+                types: [
+                    { name: 'Acontecimiento', hint: 'Suceso impactante que cambió su perspectiva.' },
+                    { name: 'Sabiduría / Revelación', hint: 'Conocimiento profundo o secreto descubierto.' },
+                    { name: 'Miedo / Trauma', hint: 'Fobia o herida psicológica tras las batallas.' },
+                    { name: 'Debilidad', hint: 'Limitación física o mágica adquirida.' },
+                    { name: 'Mutación / Marca Física', hint: 'Cambio permanente en su cuerpo.' }
+                ]
+            },
+            {
+                label: '🤝 Relaciones y Estatus Social',
+                types: [
+                    { name: 'Compañero', hint: 'Aliado incondicional, mascota o aprendiz.' },
+                    { name: 'Rival', hint: 'Alguien enfrentado múltiples veces.' },
+                    { name: 'Venganza / Traición', hint: 'Ruptura de una alianza.' },
+                    { name: 'Clan / Facción', hint: 'Ingreso o expulsión de un grupo.' },
+                    { name: 'Título / Apodo', hint: 'Reputación ganada en el mundo.' },
+                    { name: 'Misión / Objetivo Vital', hint: 'Meta que guiará sus pasos.' },
+                    { name: 'Deuda / Obligación', hint: 'Favor, vida o dinero pendiente.' }
+                ]
+            },
+            {
+                label: '🔮 Fuerzas Sobrenaturales o del Destino',
+                types: [
+                    { name: 'Maldición', hint: 'Efecto negativo constante.' },
+                    { name: 'Bendición / Don', hint: 'Favor especial sobrenatural o genético.' },
+                    { name: 'Pacto / Juramento', hint: 'Contrato que no puede romper.' }
+                ]
             }
+        ];
+        const MILESTONE_TYPES = MILESTONE_CATEGORIES.flatMap(category => category.types);
+        const MILESTONE_COLORS = {
+            'Arma': 'bg-red-950/70 text-red-200 border-red-700',
+            'Armadura': 'bg-slate-800 text-slate-200 border-slate-500',
+            'Artefacto / Reliquia': 'bg-amber-950/70 text-amber-200 border-amber-600',
+            'Montura / Vehículo': 'bg-orange-950/70 text-orange-200 border-orange-600',
+            'Refugio / Territorio': 'bg-emerald-950/70 text-emerald-200 border-emerald-600',
+            'Acontecimiento': 'bg-indigo-950/70 text-indigo-200 border-indigo-600',
+            'Sabiduría / Revelación': 'bg-cyan-950/70 text-cyan-200 border-cyan-600',
+            'Miedo / Trauma': 'bg-purple-950/70 text-purple-200 border-purple-600',
+            'Debilidad': 'bg-stone-900 text-stone-200 border-stone-500',
+            'Mutación / Marca Física': 'bg-lime-950/70 text-lime-200 border-lime-600',
+            'Compañero': 'bg-green-950/70 text-green-200 border-green-600',
+            'Rival': 'bg-rose-950/70 text-rose-200 border-rose-600',
+            'Venganza / Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Venganza': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Clan / Facción': 'bg-blue-950/70 text-blue-200 border-blue-600',
+            'Clan': 'bg-blue-950/70 text-blue-200 border-blue-600',
+            'Título / Apodo': 'bg-yellow-950/70 text-yellow-200 border-yellow-600',
+            'Misión / Objetivo Vital': 'bg-teal-950/70 text-teal-200 border-teal-600',
+            'Misión': 'bg-teal-950/70 text-teal-200 border-teal-600',
+            'Deuda / Obligación': 'bg-pink-950/70 text-pink-200 border-pink-600',
+            'Maldición': 'bg-violet-950/70 text-violet-200 border-violet-600',
+            'Bendición / Don': 'bg-sky-950/70 text-sky-200 border-sky-600',
+            'Pacto / Juramento': 'bg-gray-900 text-gray-200 border-gray-500'
         };
 
-        /* ==========================================================================
-           3. SISTEMA DE PLANTILLAS DINÁMICAS (VISTAS)
-           ========================================================================== */
-
-        // PÁGINA 1: TODOS LOS PAÍSES
-        function viewCountries() {
-            let searchHtml = `
-                <div class="mb-12 text-center max-w-2xl mx-auto">
-                    <h2 class="serif-title text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-4">Mis Destinos & Memorias</h2>
-                    <p class="text-slate-500 text-base mb-8">Haz clic en cualquier país para explorar ciudades y revivir tus fotos y videos organizados dinámicamente.</p>
-                    
-                    <div class="relative max-w-md mx-auto">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        </div>
-                        <input type="text" id="country-search" oninput="filterCountries()" placeholder="Buscar país o ciudad..." class="block w-full pl-10 pr-4 py-3 border border-slate-200 rounded-2xl bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm transition-all">
-                    </div>
-                </div>
-            `;
-
-            let cardsHtml = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="countries-grid">`;
-            
-            paisesJSON.forEach(pais => {
-                // Contar recuerdos de este país
-                const recuerdosPais = recuerdosJSON.filter(r => r.paisId === pais.id);
-                const totalMedias = recuerdosPais.reduce((acc, current) => acc + current.archivos.length, 0);
-
-                cardsHtml += `
-                    <div class="country-card bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full" data-name="${pais.nombre.toLowerCase()}">
-                        <!-- Portada con Gradiente suave -->
-                        <div class="h-44 overflow-hidden relative group">
-                            <img src="${pais.imagenPortada}" alt="${pais.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
-                            
-                            <!-- Bandera de País -->
-                            <div class="absolute top-4 left-4 text-3xl bg-white/90 backdrop-blur-sm px-2 py-1 rounded-xl shadow-sm">
-                                ${pais.bandera}
-                            </div>
-                        </div>
-                        
-                        <!-- Contenido Tarjeta -->
-                        <div class="p-5 flex-grow flex flex-col justify-between">
-                            <div>
-                                <h3 class="text-xl font-bold text-slate-900 mb-1 flex items-center justify-between">
-                                    <span>${pais.nombre}</span>
-                                </h3>
-                                <p class="text-slate-500 text-xs line-clamp-2 mb-4 leading-relaxed">${pais.descripcion}</p>
-                            </div>
-                            
-                            <!-- Atributos -->
-                            <div class="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500">
-                                <span class="flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                    ${pais.ciudades.length} ${pais.ciudades.length === 1 ? 'Ciudad' : 'Ciudades'}
-                                </span>
-                                <span class="flex items-center gap-1 font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    ${totalMedias} Medias
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <!-- Botón de Acción -->
-                        <div class="px-5 pb-5">
-                            <button onclick="router.go('country', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')} })" class="w-full bg-slate-900 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5">
-                                Explorar País
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
+        // Initialization
+        function init() {
+            const saved = localStorage.getItem('nexusRpgState');
+            if (saved) state = JSON.parse(saved);
+            state.characters.forEach(char => {
+                char.pendingMilestones = char.pendingMilestones || 0;
+                char.type = char.type || '';
+                char.story = cleanHandwrittenStory(char.story);
+                char.milestones = (char.milestones || []).map(milestone => {
+                    const normalized = normalizeMilestone(milestone);
+                    return isAutomaticSocietyMilestone(milestone) ? { ...normalized, auto: true } : normalized;
+                });
+                if (char.pendingAction === 'milestone') {
+                    char.pendingMilestones = Math.max(char.pendingMilestones, 1);
+                    char.pendingAction = null;
+                }
+                char.equipment = (char.equipment || []).map(normalizeEquipment);
+                char.mental = (char.mental || []).map(normalizeMentalMilestone);
+                char.world = normalizeWorldStatus(char.world);
+                char.destiny = normalizeDestiny(char.destiny);
+                enforceDestinyStats(char);
             });
-
-            cardsHtml += `</div>`;
-            return searchHtml + cardsHtml;
+            
+            // Render initial view
+            renderGallery();
+            updateBattleButton();
         }
 
-        // PÁGINA 2: DETALLE DE PAÍS (CIUDADES Y MULTIMEDIA CONSOLIDADA)
-        function viewCountryDetail() {
-            const pais = state.selectedCountry;
-            
-            // Filtrar recuerdos de este país en particular
-            const recuerdosPais = recuerdosJSON.filter(r => r.paisId === pais.id);
-            
-            // Consolidar todos los archivos multimedia de este país
-            let todoMultimediaPais = [];
-            recuerdosPais.forEach(rec => {
-                rec.archivos.forEach(file => {
-                    todoMultimediaPais.push({
-                        ...file,
-                        ciudadNombre: pais.ciudades.find(c => c.id === rec.ciudadId)?.nombre || "",
-                        recuerdoTitulo: rec.titulo
-                    });
-                });
-            });
+        function saveState() {
+            localStorage.setItem('nexusRpgState', JSON.stringify(state));
+            renderGallery();
+            updateBattleButton();
+        }
 
-            let html = `
-                <!-- Cabecera de País -->
-                <div class="relative rounded-3xl overflow-hidden mb-10 h-72 sm:h-96 shadow-lg">
-                    <img src="${pais.imagenPortada}" alt="${pais.nombre}" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent"></div>
-                    <div class="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 right-6 sm:right-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-white">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="text-4xl sm:text-5xl">${pais.bandera}</span>
-                                <span class="text-xs tracking-wider uppercase font-semibold text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">Destino Guardado</span>
-                            </div>
-                            <h2 class="serif-title text-3xl sm:text-5xl font-extrabold tracking-tight">${pais.nombre}</h2>
-                            <p class="text-slate-300 text-sm max-w-xl mt-2 leading-relaxed">${pais.descripcion}</p>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center min-w-[80px]">
-                                <span class="block text-2xl font-extrabold text-white">${pais.ciudades.length}</span>
-                                <span class="text-[10px] text-slate-300 uppercase tracking-widest">Ciudades</span>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center min-w-[80px]">
-                                <span class="block text-2xl font-extrabold text-white">${todoMultimediaPais.length}</span>
-                                <span class="text-[10px] text-slate-300 uppercase tracking-widest">Archivos</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
 
-                <!-- Pestañas o Secciones del País -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    <!-- COLUMNA IZQUIERDA: CIUDADES DE ESTE PAÍS (De JSON de ciudades) -->
-                    <div class="lg:col-span-1 space-y-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                Ciudades Visitadas
-                            </h3>
-                            <p class="text-xs text-slate-400">Selecciona para entrar a carpetas de recuerdos específicas</p>
-                        </div>
-                        
-                        <div class="space-y-3">
+        function toggleCreateForm(forceOpen = null) {
+            const panel = document.getElementById('create-char-panel');
+            const button = document.getElementById('btn-toggle-create');
+            const shouldOpen = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
+            panel.classList.toggle('hidden', !shouldOpen);
+            button.innerText = shouldOpen ? 'Ocultar formulario' : '+ Nuevo personaje';
+        }
+
+        function queueMilestone(char) {
+            char.pendingMilestones = (char.pendingMilestones || 0) + 1;
+        }
+
+
+        function getDesignatedMilestoneCount(char) {
+            const manualMilestones = (char.milestones || []).filter(m => !isAutomaticSocietyMilestone(m)).length;
+            const equipmentCount = (char.equipment || []).length;
+            const mentalCount = (char.mental || []).length;
+            const world = normalizeWorldStatus(char.world);
+            const destiny = normalizeDestiny(char.destiny);
+            const worldCount = (world.milestones || []).length;
+            const destinyCount = (destiny.milestones || []).length;
+            return Math.max(manualMilestones, equipmentCount + mentalCount + worldCount + destinyCount);
+        }
+
+        function getAvailableMilestoneSlots(char) {
+            return Math.max(0, Math.floor((Number(char.battles) || 0) / 30) - getDesignatedMilestoneCount(char));
+        }
+
+        function canAddMilestone(char) {
+            return getAvailableMilestoneSlots(char) > 0;
+        }
+
+        function renderMilestoneAccessButtons(char) {
+            const container = document.getElementById('modal-milestone-buttons');
+            if (!container) return;
+            const ready = canAddMilestone(char);
+            const readyClass = ready ? ' milestone-ready' : '';
+            const legend = ready ? '<p class="col-span-2 text-center text-xs text-yellow-300 font-bold animate-pulse">Agregar un hito</p>' : '';
+            container.innerHTML = `
+                ${legend}
+                <button onclick="openInventoryModal(currentCharId)" class="w-full bg-red-950/70 hover:bg-red-900 border border-red-700 text-white font-bold py-2 rounded-lg transition${readyClass}">⚔️ Inventario</button>
+                <button onclick="openMentalModal(currentCharId)" class="w-full bg-purple-950/70 hover:bg-purple-900 border border-purple-700 text-white font-bold py-2 rounded-lg transition${readyClass}">🧠 Mente</button>
+                <button onclick="openWorldModal(currentCharId)" class="w-full bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 text-white font-bold py-2 rounded-lg transition${readyClass}">🌎 Mundo</button>
+                <button onclick="openDestinyModal(currentCharId)" class="w-full bg-sky-950/70 hover:bg-sky-900 border border-sky-700 text-white font-bold py-2 rounded-lg transition${readyClass}">🔮 Destino</button>
             `;
+        }
 
-            pais.ciudades.forEach(ciudad => {
-                // Contar recuerdos para esta ciudad
-                const recuerdosCiudad = recuerdosPais.filter(r => r.ciudadId === ciudad.id);
-                const totalMediasCiudad = recuerdosCiudad.reduce((acc, current) => acc + current.archivos.length, 0);
-
-                html += `
-                    <div onclick="router.go('city', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')}, city: ${JSON.stringify(ciudad).replace(/"/g, '&quot;')} })" class="p-4 bg-white hover:bg-slate-50 border border-slate-100 hover:border-indigo-100 rounded-2xl shadow-sm cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between group">
-                        <div class="pr-4">
-                            <h4 class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors flex items-center gap-2 text-sm sm:text-base">
-                                ${ciudad.nombre}
-                                <span class="text-xs bg-slate-100 text-slate-500 font-normal px-2 py-0.5 rounded-full">${recuerdosCiudad.length} carpetas</span>
-                            </h4>
-                            <p class="text-xs text-slate-500 line-clamp-1 mt-1">${ciudad.descripcion}</p>
-                        </div>
-                        <div class="text-right flex items-center gap-2">
-                            <span class="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg">
-                                ${totalMediasCiudad} files
-                            </span>
-                            <div class="p-1.5 bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 rounded-lg transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `
-                        </div>
-                    </div>
-
-                    <!-- COLUMNA DERECHA: TODOS LOS RECUERDOS (MULTIMEDIA CONSOLIDADA DEL PAÍS) -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    Galería Global de ${pais.nombre}
-                                </h3>
-                                <p class="text-xs text-slate-400">Archivos combinados de todas las ciudades de este país</p>
-                            </div>
-                            
-                            <!-- Filtros rápidos para multimedia consolidada -->
-                            <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-medium self-start sm:self-center">
-                                <button onclick="filterMediaPool('all')" class="media-filter-btn active px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-800">Todo</button>
-                                <button onclick="filterMediaPool('imagen')" class="media-filter-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800">Imágenes</button>
-                                <button onclick="filterMediaPool('video')" class="media-filter-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800">Videos</button>
-                            </div>
-                        </div>
-
-                        <!-- Grid de Multimedia Consolidada -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="consolidated-media-grid">
-            `;
-
-            if (todoMultimediaPais.length === 0) {
-                html += `
-                    <div class="col-span-full py-16 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
-                        <p class="text-slate-400 text-sm">Aún no hay archivos multimedia guardados para este país.</p>
-                    </div>
-                `;
-            } else {
-                todoMultimediaPais.forEach((media, idx) => {
-                    const isVideo = media.tipo === 'video';
-                    html += `
-                        <div onclick="openLightbox(${JSON.stringify(todoMultimediaPais).replace(/"/g, '&quot;')}, ${idx})" class="media-item-box group relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 hover:border-indigo-200 cursor-pointer shadow-sm hover:shadow-md transition-all duration-300" data-type="${media.tipo}">
-                            <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=400&q=80' : media.url}" alt="${media.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            
-                            <!-- Badges de la multimedia -->
-                            <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm p-1.5 rounded-lg text-white">
-                                ${isVideo ? 
-                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` : 
-                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-                                }
-                            </div>
-
-                            <!-- Información abajo -->
-                            <div class="absolute bottom-3 left-3 right-3 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                <p class="text-xs font-bold leading-tight truncate">${media.recuerdoTitulo}</p>
-                                <p class="text-[10px] text-slate-300 flex items-center gap-1 mt-0.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                    ${media.ciudadNombre}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                });
+        function setFormAddMode(formId, canAdd, emptyMessage) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            let notice = document.getElementById(`${formId}-locked-notice`);
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = `${formId}-locked-notice`;
+                notice.className = 'bg-gray-900/70 border border-gray-700 rounded-xl p-4 text-sm text-gray-400';
+                form.parentNode.insertBefore(notice, form);
             }
-
-            html += `
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            return html;
+            notice.innerHTML = emptyMessage;
+            notice.classList.toggle('hidden', canAdd);
+            form.classList.toggle('hidden', !canAdd);
         }
 
-        // PÁGINA 3: VISTA DE CIUDAD (LISTADO DE CARPETAS DE RECUERDOS)
-        function viewCityDetail() {
-            const pais = state.selectedCountry;
-            const ciudad = state.selectedCity;
-            
-            // Buscar carpetas de recuerdos correspondientes a esta ciudad
-            const recuerdosCiudad = recuerdosJSON.filter(r => r.paisId === pais.id && r.ciudadId === ciudad.id);
+        function getMilestoneColor(type) {
+            return MILESTONE_COLORS[type] || 'bg-gray-800 text-gray-200 border-gray-600';
+        }
 
-            let html = `
-                <!-- Cabecera de Ciudad -->
-                <div class="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm mb-8">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div class="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-xs">
-                                <span class="bg-indigo-50 px-2.5 py-1 rounded-lg">${pais.nombre}</span>
-                                <span>/</span>
-                                <span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">Ciudad</span>
-                            </div>
-                            <h2 class="serif-title text-3xl sm:text-4xl font-bold text-slate-900">${ciudad.nombre}</h2>
-                            <p class="text-slate-500 text-sm mt-1 max-w-xl leading-relaxed">${ciudad.descripcion}</p>
-                        </div>
-                        <div class="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl text-center self-start sm:self-center border border-indigo-100">
-                            <span class="block text-2xl font-bold leading-none">${recuerdosCiudad.length}</span>
-                            <span class="text-[10px] uppercase font-semibold text-indigo-400">Carpetas</span>
-                        </div>
-                    </div>
+        function escapeAttr(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function getImageHtml(src, alt, classes, id = '') {
+            const safeAlt = escapeAttr(alt || 'Personaje sin imagen');
+            const safeSrc = escapeAttr(src || '');
+            const safeClasses = escapeAttr(classes);
+            const idAttr = id ? ` id="${escapeAttr(id)}"` : '';
+            const fallbackAttrs = `data-fallback-alt="Silueta de ${safeAlt}" data-fallback-class="${safeClasses}"`;
+            const silhouette = `<div${idAttr} role="img" aria-label="Silueta de ${safeAlt}" class="${safeClasses} silhouette flex items-end justify-center text-gray-500 text-xs pb-3">Sin imagen</div>`;
+            if (!safeSrc) return silhouette;
+            return `<img${idAttr} src="${safeSrc}" alt="${safeAlt}" class="${safeClasses}" ${fallbackAttrs} onerror="replaceBrokenImage(this)">`;
+        }
+
+        function replaceBrokenImage(img) {
+            const fallback = document.createElement('div');
+            if (img.id) fallback.id = img.id;
+            fallback.setAttribute('role', 'img');
+            fallback.setAttribute('aria-label', img.dataset.fallbackAlt || 'Silueta de personaje sin imagen');
+            fallback.className = `${img.dataset.fallbackClass || ''} silhouette flex items-end justify-center text-gray-500 text-xs pb-3`;
+            fallback.textContent = 'Sin imagen';
+            img.replaceWith(fallback);
+        }
+
+        function isAutomaticSocietyMilestone(milestone) {
+            const normalized = normalizeMilestone(milestone);
+            const autoTypes = ['Compañero', 'Rival', 'Venganza / Traición', 'Traición', 'Venganza'];
+            return Boolean(milestone && milestone.auto) || autoTypes.includes(normalized.type);
+        }
+
+        function cleanHandwrittenStory(story) {
+            return String(story || '')
+                .split('\n')
+                .filter(line => !/^\s*\[?Hito Autom[aá]tico\s*[-–:]/i.test(line.trim()))
+                .join('\n')
+                .trim();
+        }
+
+        function normalizeMilestone(milestone) {
+            if (typeof milestone === 'string') return { type: 'Hito', name: milestone, description: '', image: '' };
+            return {
+                type: milestone.type || 'Hito',
+                name: milestone.name || milestone.note || 'Sin nombre',
+                description: milestone.description || milestone.note || '',
+                image: milestone.image || ''
+            };
+        }
+
+        function normalizeEquipment(item = {}) {
+            return {
+                id: item.id || generateId(),
+                type: item.type || 'Arma',
+                name: item.name || 'Sin nombre',
+                image: item.image || '',
+                attr: item.attr || 'STR',
+                power: Number(item.power || 0),
+                mode: item.mode || 'add',
+                target: item.target || 'self',
+                superior: item.superior || '',
+                inferior: item.inferior || '',
+                immune: item.immune || '',
+                condition: item.condition || '',
+                notes: item.notes || '',
+                superiorCharacters: item.superiorCharacters || [], superiorTypes: item.superiorTypes || [], superiorPercent: Number(item.superiorPercent || 0),
+                inferiorCharacters: item.inferiorCharacters || [], inferiorTypes: item.inferiorTypes || [], inferiorPercent: Number(item.inferiorPercent || 0),
+                immuneCharacters: item.immuneCharacters || [], immuneTypes: item.immuneTypes || [],
+                affectedCharacters: item.affectedCharacters || [], affectedTypes: item.affectedTypes || []
+            };
+        }
+
+
+        function normalizeMentalMilestone(item = {}) {
+            return {
+                id: item.id || generateId(),
+                type: item.type || 'Acontecimiento',
+                name: item.name || 'Sin nombre',
+                value: Number(item.value || 25),
+                plusAttr: item.plusAttr || 'INT',
+                minusAttr: item.minusAttr || 'STR',
+                trigger: item.trigger || '',
+                aggravator: item.aggravator || '',
+                notes: item.notes || '',
+                image: item.image || '',
+                triggerCharacters: item.triggerCharacters || [], triggerTypes: item.triggerTypes || [],
+                aggravatorCharacters: item.aggravatorCharacters || [], aggravatorTypes: item.aggravatorTypes || [], aggravatorPercent: Number(item.aggravatorPercent || 0)
+            };
+        }
+
+
+
+        function normalizeWorldMilestone(item = {}) {
+            return {
+                id: item.id || generateId(),
+                type: item.type || 'Apodo',
+                name: item.name || item.title || 'Sin nombre',
+                narrative: item.narrative || item.notes || '',
+                companionId: item.companionId || '',
+                memberIds: Array.isArray(item.memberIds) ? item.memberIds : [],
+                missionMode: item.missionMode || 'destroy',
+                targetCharacters: item.targetCharacters || [],
+                targetTypes: item.targetTypes || [],
+                debtActive: item.debtActive !== false
+            };
+        }
+
+        function normalizeWorldStatus(world = {}) {
+            const migrated = [];
+            if (world.title) migrated.push({ type: 'Apodo', name: world.title, narrative: '' });
+            (Array.isArray(world.companions) ? world.companions : []).forEach(id => migrated.push({ type: 'Compañero', name: 'Compañero', companionId: id, narrative: '' }));
+            if (world.missionOffense) migrated.push({ type: 'Misión Objetivo', name: 'Misión ofensiva', missionMode: 'destroy', targetTypes: [world.missionOffense], narrative: '' });
+            if (world.missionProtect) migrated.push({ type: 'Misión Objetivo', name: 'Misión defensiva', missionMode: 'protect', targetTypes: [world.missionProtect], narrative: '' });
+            if (world.debtTarget) migrated.push({ type: 'Deuda', name: 'Deuda', targetTypes: [world.debtTarget], debtActive: Boolean(world.debtActive), narrative: '' });
+            const milestones = (Array.isArray(world.milestones) && world.milestones.length ? world.milestones : migrated).map(normalizeWorldMilestone);
+            const companions = milestones.filter(m => m.type === 'Compañero' && m.companionId).map(m => m.companionId);
+            const nickname = milestones.find(m => m.type === 'Apodo');
+            const debt = milestones.find(m => m.type === 'Deuda' && m.debtActive);
+            const offense = milestones.find(m => m.type === 'Misión Objetivo' && m.missionMode === 'destroy');
+            const protect = milestones.find(m => m.type === 'Misión Objetivo' && m.missionMode === 'protect');
+            return {
+                milestones,
+                title: nickname?.name || '',
+                companions,
+                missionOffense: compactTargets(offense?.targetCharacters || [], offense?.targetTypes || []),
+                missionProtect: compactTargets(protect?.targetCharacters || [], protect?.targetTypes || []),
+                debtTarget: compactTargets(debt?.targetCharacters || [], debt?.targetTypes || []),
+                debtActive: Boolean(debt)
+            };
+        }
+
+        function normalizeDestinyMilestone(item = {}) {
+            return {
+                id: item.id || generateId(),
+                type: item.type || 'Maldición',
+                name: item.name || item.oathName || 'Sin nombre',
+                narrative: item.narrative || item.notes || '',
+                casterId: item.casterId || '',
+                attr: item.attr || item.curseAttr || item.blessingAttr || item.oathAttr || 'STR',
+                oathPath: item.oathPath || 'risk'
+            };
+        }
+
+        function normalizeDestiny(destiny = {}) {
+            const migrated = [];
+            if (destiny.curseAttr) migrated.push({ type: 'Maldición', name: 'Maldición', attr: destiny.curseAttr, narrative: destiny.notes || '' });
+            if (destiny.blessingAttr) migrated.push({ type: 'Bendición', name: 'Bendición', attr: destiny.blessingAttr, narrative: destiny.notes || '' });
+            if (destiny.oathPath || destiny.oathName) migrated.push({ type: 'Juramento', name: destiny.oathName || 'Juramento', attr: destiny.oathAttr || 'STR', oathPath: destiny.oathPath || 'risk', narrative: destiny.notes || '' });
+            const milestones = (Array.isArray(destiny.milestones) && destiny.milestones.length ? destiny.milestones : migrated).map(normalizeDestinyMilestone);
+            const curse = milestones.find(m => m.type === 'Maldición');
+            const blessing = milestones.find(m => m.type === 'Bendición');
+            const oath = milestones.find(m => m.type === 'Juramento');
+            return { milestones, curseAttr: curse?.attr || '', blessingAttr: blessing?.attr || '', oathPath: oath?.oathPath || '', oathAttr: oath?.attr || 'STR', oathName: oath?.name || '', notes: oath?.narrative || curse?.narrative || blessing?.narrative || '' };
+        }
+
+        function getDisplayName(char) {
+            const world = normalizeWorldStatus(char.world);
+            return world.title ? `${char.name} (${world.title})` : char.name;
+        }
+
+        function getDisplayedStat(char, attrKey) {
+            const destiny = normalizeDestiny(char.destiny);
+            if (destiny.curseAttr === attrKey) return 0;
+            if (destiny.blessingAttr === attrKey) return 100;
+            return Number(char.stats[attrKey] || 0);
+        }
+
+        function enforceDestinyStats(char) {
+            const destiny = normalizeDestiny(char.destiny);
+            if (destiny.blessingAttr) char.stats[destiny.blessingAttr] = 100;
+            if (destiny.curseAttr) char.stats[destiny.curseAttr] = 0;
+        }
+
+
+
+        function characterTypeOptionsHtml(selected = []) {
+            const types = [...new Set(state.characters.map(c => c.type).filter(Boolean))].sort();
+            return types.map(type => `<option value="${escapeAttr(type)}" ${selected.includes(type) ? 'selected' : ''}>${escapeHtml(type)}</option>`).join('');
+        }
+
+        function selectedOptions(id) {
+            const el = document.getElementById(id);
+            return el ? Array.from(el.selectedOptions).map(o => o.value) : [];
+        }
+
+        function compactTargets(charIds = [], typeNames = []) {
+            const names = charIds.map(id => state.characters.find(c => c.id === id)?.name).filter(Boolean);
+            return [...names, ...typeNames].join(', ');
+        }
+
+        function targetPickerHtml(prefix, label, selectedCharacters = [], selectedTypes = [], withPercent = false, percentValue = 0) {
+            return `<div class="rounded-lg border border-gray-700 bg-black/20 p-3">
+                <div class="flex items-center justify-between gap-2 mb-2"><label class="inventory-label mb-0">${label}</label>${withPercent ? `<input id="${prefix}-percent" type="number" value="${escapeAttr(percentValue)}" placeholder="%" class="inventory-input max-w-28">` : ''}</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div><button type="button" onclick="togglePicker('${prefix}-chars')" class="w-full bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Agregar personaje</button><select id="${prefix}-chars" multiple size="5" class="inventory-input hidden mt-2">${rosterOptionsHtml(selectedCharacters, currentInventoryCharId || currentMentalCharId || '')}</select></div>
+                    <div><button type="button" onclick="togglePicker('${prefix}-types')" class="w-full bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Agregar tipo</button><select id="${prefix}-types" multiple size="5" class="inventory-input hidden mt-2">${characterTypeOptionsHtml(selectedTypes)}</select></div>
                 </div>
+            </div>`;
+        }
 
-                <!-- Listado de Carpetas de Recuerdos -->
-                <h3 class="text-lg font-bold text-slate-950 mb-4 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                    Carpetas en recuerdos.json
-                </h3>
-            `;
+        function togglePicker(id) { document.getElementById(id)?.classList.toggle('hidden'); }
 
-            if (recuerdosCiudad.length === 0) {
-                html += `
-                    <div class="py-16 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
-                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                        </div>
-                        <p class="text-slate-500 font-bold mb-1">No hay carpetas de recuerdos cargadas</p>
-                        <p class="text-slate-400 text-xs">Crea un registro de recuerdo para ${ciudad.nombre} en recuerdos.json</p>
-                    </div>
-                `;
-            } else {
-                html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+        function attrOptions(keys) {
+            return ATTRS.filter(a => keys.includes(a.key)).map(a => `<option value="${a.key}">${a.name}</option>`).join('');
+        }
+
+        function rosterOptionsHtml(selected = [], excludeId = '') {
+            return state.characters.filter(c => c.id !== excludeId).map(c => `<option value="${escapeAttr(c.id)}" ${selected.includes(c.id) ? 'selected' : ''}>${escapeHtml(getDisplayName(c))}</option>`).join('');
+        }
+
+        function characterMatchesQuery(char, query) {
+            const text = String(query || '').trim().toLowerCase();
+            if (!text || !char) return false;
+            return text.split(',').some(entry => {
+                const token = entry.trim();
+                return token && (`${char.name} ${normalizeWorldStatus(char.world).title} ${char.story || ''}`).toLowerCase().includes(token);
+            });
+        }
+
+        function areCompanions(a, b) {
+            if (!a || !b) return false;
+            const aw = normalizeWorldStatus(a.world);
+            const bw = normalizeWorldStatus(b.world);
+            return aw.companions.includes(b.id) || bw.companions.includes(a.id);
+        }
+
+        function getTeamClanIds(team) {
+            const ids = new Set();
+            for (let i = 0; i < team.length; i++) for (let j = i + 1; j < team.length; j++) for (let k = j + 1; k < team.length; k++) {
+                const trio = [team[i], team[j], team[k]];
+                if (areCompanions(trio[0], trio[1]) && areCompanions(trio[0], trio[2]) && areCompanions(trio[1], trio[2])) trio.forEach(c => ids.add(c.id));
+            }
+            return ids;
+        }
+
+        function isMentalMilestone(type) {
+            return ['Acontecimiento', 'Sabiduría / Revelación', 'Miedo / Trauma', 'Debilidad', 'Mutación', 'Mutación / Marca Física'].includes(type);
+        }
+
+        function isEquipmentMilestone(type) {
+            return ['Arma', 'Armadura', 'Artefacto / Reliquia', 'Montura / Vehículo', 'Refugio / Territorio'].includes(type);
+        }
+
+        function milestoneOptionsHtml() {
+            return MILESTONE_CATEGORIES.map(category => `
+                <optgroup label="${category.label}">
+                    ${category.types.map(type => `<option value="${type.name}" title="${type.hint}">${type.name}</option>`).join('')}
+                </optgroup>
+            `).join('');
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.getElementById('section-management').classList.add('hidden');
+            document.getElementById('section-battle').classList.add('hidden');
+            document.getElementById('nav-management').classList.replace('bg-gray-800', 'text-gray-300');
+            document.getElementById('nav-battle').classList.replace('bg-gray-800', 'text-gray-300');
+            
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`nav-${tab}`).classList.add('bg-gray-800');
+            document.getElementById(`nav-${tab}`).classList.remove('text-gray-300');
+        }
+
+        document.getElementById('create-char-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newChar = {
+                id: generateId(),
+                name: document.getElementById('char-name').value,
+                type: document.getElementById('char-type').value.trim(),
+                image: document.getElementById('char-image').value.trim(),
+                story: document.getElementById('char-story').value,
+                stats: {
+                    INT: parseInt(document.getElementById('char-int').value),
+                    STR: parseInt(document.getElementById('char-str').value),
+                    SPD: parseInt(document.getElementById('char-spd').value),
+                    MAG: parseInt(document.getElementById('char-mag').value)
+                },
+                level: 1,
+                cap: 100,
+                breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 },
+                points: { pos: 0, neg: 0 },
+                battles: 0,
+                milestones: [],
+                equipment: [],
+                mental: [],
+                world: normalizeWorldStatus(),
+                destiny: normalizeDestiny(),
+                pendingMilestones: 0,
+                pendingAction: null // 'points'
+            };
+            
+            state.characters.push(newChar);
+            saveState();
+            e.target.reset();
+            toggleCreateForm(false);
+        });
+
+        function renderGallery() {
+            const container = document.getElementById('char-gallery');
+            container.innerHTML = '';
+            document.getElementById('char-count').innerText = state.characters.length;
+
+            state.characters.forEach(char => {
+                const totalPoints = char.points.pos + char.points.neg;
+                const needsPoints = totalPoints >= 10;
+                const needsMilestone = canAddMilestone(char);
                 
-                recuerdosCiudad.forEach(rec => {
-                    const totalFotos = rec.archivos.filter(f => f.tipo === 'imagen').length;
-                    const totalVideos = rec.archivos.filter(f => f.tipo === 'video').length;
-                    const portadaUrl = rec.archivos[0]?.url || 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=400&q=80';
+                // Prioritize setting pending action states visually
+                if (needsPoints) char.pendingAction = 'points';
+                
+                let badges = '';
+                if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Asignar Puntos!</span>`;
+                if (needsMilestone) badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
 
-                    html += `
-                        <div onclick="router.go('memory', { country: ${JSON.stringify(pais).replace(/"/g, '&quot;')}, city: ${JSON.stringify(ciudad).replace(/"/g, '&quot;')}, memory: ${JSON.stringify(rec).replace(/"/g, '&quot;')} })" class="bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer transition-all duration-300 flex flex-col justify-between group">
-                            <!-- Folder Tab & Image Container -->
-                            <div class="relative">
-                                <!-- Pestaña del Folder superior estilizado -->
-                                <div class="absolute top-0 left-4 -translate-y-2 h-3.5 w-20 bg-slate-900 rounded-t-lg z-10 group-hover:bg-indigo-600 transition-colors"></div>
-                                
-                                <div class="h-40 overflow-hidden relative">
-                                    <img src="${portadaUrl}" alt="${rec.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 to-transparent"></div>
-                                    
-                                    <!-- Badge del SLUG / Carpeta de destino -->
-                                    <div class="absolute bottom-3 left-4 flex items-center gap-1.5 text-[10px] bg-slate-950/60 backdrop-blur-md px-2 py-1 rounded-lg text-indigo-300 border border-indigo-500/30">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                                        multimedia/${rec.slug}-*
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Contenido -->
-                            <div class="p-5 flex-grow">
-                                <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">
-                                    <span>${rec.fecha}</span>
-                                    <span class="flex items-center gap-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                        ${rec.coordenadas}
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">${rec.titulo}</h4>
-                                <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mt-2">${rec.descripcion}</p>
-                            </div>
-
-                            <!-- Barra de control multimedia de carpeta -->
-                            <div class="px-5 pb-5 pt-3 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500">
-                                <div class="flex gap-3">
-                                    <span class="flex items-center gap-1" title="Imágenes">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        ${totalFotos}
-                                    </span>
-                                    <span class="flex items-center gap-1" title="Videos">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        ${totalVideos}
-                                    </span>
-                                </div>
-                                <span class="font-bold text-slate-700 flex items-center gap-1 group-hover:text-indigo-600">
-                                    Abrir Carpeta
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                                </span>
-                            </div>
+                const card = document.createElement('div');
+                card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer';
+                card.onclick = () => openCharModal(char.id);
+                const inventoryCount = (char.equipment || []).length;
+                const mentalCount = (char.mental || []).length;
+                card.innerHTML = `
+                    ${badges}
+                    ${getImageHtml(char.image, char.name, 'w-full h-48 object-cover object-top')}
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="font-bold text-lg text-white truncate">${getDisplayName(char)}</h3>
+                            <div class="shrink-0 flex gap-1"><button title="Inventario" onclick="event.stopPropagation(); openInventoryModal('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">⚔️</button><button title="Mente" onclick="event.stopPropagation(); openMentalModal('${char.id}')" class="bg-purple-950/70 hover:bg-purple-900 border border-purple-700 rounded-lg px-2 py-1 text-sm">🧠</button><button title="Mundo" onclick="event.stopPropagation(); openWorldModal('${char.id}')" class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-sm">🌎</button><button title="Destino" onclick="event.stopPropagation(); openDestinyModal('${char.id}')" class="bg-sky-950/70 hover:bg-sky-900 border border-sky-700 rounded-lg px-2 py-1 text-sm">🔮</button></div>
                         </div>
-                    `;
-                });
-
-                html += `</div>`;
-            }
-
-            return html;
-        }
-
-        // PÁGINA 4: RECUERDO ESPECÍFICO (ABRIR LA CARPETA MULTIMEDIA)
-        function viewMemoryDetail() {
-            const pais = state.selectedCountry;
-            const ciudad = state.selectedCity;
-            const recuerdo = state.selectedMemory;
-
-            let html = `
-                <!-- Cabecera de la Carpeta -->
-                <div class="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm mb-8">
-                    <div class="flex flex-col md:flex-row justify-between gap-6">
-                        <div class="space-y-3">
-                            <div class="flex flex-wrap items-center gap-2 text-indigo-600 font-medium text-xs">
-                                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${pais.nombre}</span>
-                                <span>/</span>
-                                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${ciudad.nombre}</span>
-                                <span>/</span>
-                                <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                                    ${recuerdo.slug}
-                                </span>
-                            </div>
-                            <h2 class="serif-title text-3xl sm:text-4xl font-bold text-slate-900">${recuerdo.titulo}</h2>
-                            <p class="text-slate-500 text-sm leading-relaxed max-w-2xl">${recuerdo.descripcion}</p>
-                        </div>
-                        
-                        <!-- Metadata Card -->
-                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 self-start min-w-[200px] text-xs space-y-2">
-                            <div class="flex justify-between"><span class="text-slate-400">Fecha:</span> <span class="font-semibold text-slate-700">${recuerdo.fecha}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Coordenadas:</span> <span class="font-semibold text-slate-700">${recuerdo.coordenadas}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Mapeo Virtual:</span> <span class="font-mono text-indigo-600">/multimedia/${recuerdo.slug}-*</span></div>
+                        <p class="text-xs text-gray-400 mb-1">Tipo: ${escapeHtml(char.type || '—')}</p>
+                        <p class="text-sm text-primary mb-2">Nivel ${char.level} | ${char.battles} Batallas | ⚔️ ${inventoryCount} | 🧠 ${mentalCount}</p>
+                        ${getAvailableMilestoneSlots(char) > 0 ? '<p class="text-xs text-yellow-300 font-bold animate-pulse mb-2">Agregar un hito</p>' : ''}
+                        <div class="flex gap-2 text-xs">
+                            <span class="text-blue-400">INT: ${getDisplayedStat(char, 'INT')}</span>
+                            <span class="text-red-400">FZA: ${getDisplayedStat(char, 'STR')}</span>
+                            <span class="text-yellow-400">VEL: ${getDisplayedStat(char, 'SPD')}</span>
+                            <span class="text-purple-400">MAG: ${getDisplayedStat(char, 'MAG')}</span>
                         </div>
                     </div>
-                </div>
+                `;
+                container.appendChild(card);
+            });
+        }
 
-                <!-- Galería de Archivos que coinciden con el nombre de la carpeta -->
-                <div class="space-y-6">
-                    <div class="flex items-center justify-between">
+        let currentCharId = null;
+
+        function openCharModal(id) {
+            const char = state.characters.find(c => c.id === id);
+            if (!char) return;
+            currentCharId = id;
+
+            document.getElementById('modal-name').innerText = getDisplayName(char);
+            const modalImageFrame = document.getElementById('modal-img');
+            modalImageFrame.outerHTML = getImageHtml(char.image, char.name, 'w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md', 'modal-img');
+            document.getElementById('modal-level').innerText = char.level;
+            document.getElementById('modal-story').innerText = cleanHandwrittenStory(char.story);
+            document.getElementById('modal-battles').innerText = char.battles;
+            document.getElementById('modal-pos').innerText = `+${char.points.pos}`;
+            document.getElementById('modal-neg').innerText = `-${char.points.neg}`;
+
+            renderModalStats(char);
+            renderMilestoneAccessButtons(char);
+            renderSocieties(char);
+            
+            const actionArea = document.getElementById('modal-action-area');
+            actionArea.innerHTML = '';
+            actionArea.classList.add('hidden');
+
+            if (char.pendingAction === 'points') {
+                actionArea.classList.remove('hidden');
+                actionArea.innerHTML = `
+                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">⚠️ Límite de puntos alcanzado (10)</h4>
+                    <p class="text-xs text-gray-300 mb-4">Asigna TODOS los puntos positivos a un medidor y TODOS los negativos a otro (pueden ser el mismo). Tope actual: ${char.cap}</p>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-900">Archivos en /multimedia/</h3>
-                            <p class="text-xs text-slate-400">Cargando dinámicamente imágenes y videos asociados a "${recuerdo.slug}"</p>
+                            <label class="block text-xs mb-1 text-success">Asignar +${char.points.pos} a:</label>
+                            <select id="assign-pos" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
+                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1 text-danger">Asignar -${char.points.neg} a:</label>
+                            <select id="assign-neg" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
+                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
+                            </select>
                         </div>
                     </div>
+                    <button onclick="confirmPoints()" class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded text-sm transition">Confirmar Asignación</button>
+                `;
+            }
 
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            `;
 
-            recuerdo.archivos.forEach((archivo, idx) => {
-                const isVideo = archivo.tipo === 'video';
-                html += `
-                    <div onclick="openLightbox(${JSON.stringify(recuerdo.archivos).replace(/"/g, '&quot;')}, ${idx})" class="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-lg cursor-pointer transition-all duration-300">
-                        <div class="aspect-square bg-slate-100 relative overflow-hidden">
-                            <!-- Contenido Visual -->
-                            <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=400&q=80' : archivo.url}" alt="${archivo.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            
-                            <!-- Badges de Media -->
-                            <div class="absolute top-3 right-3 bg-slate-900/70 backdrop-blur-md p-1.5 rounded-lg text-white">
-                                ${isVideo ? 
-                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` : 
-                                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-                                }
-                            </div>
+            document.getElementById('char-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('char-modal').classList.add('hidden');
+            currentCharId = null;
+        }
+
+        function renderModalStats(char) {
+            const container = document.getElementById('modal-stats');
+            container.innerHTML = '';
+            
+            ATTRS.forEach(attr => {
+                const val = getDisplayedStat(char, attr.key);
+                const pct = Math.min((val / char.cap) * 100, 100);
+                const isCapped = val >= char.cap;
+                const btText = isCapped ? `<span class="text-xs text-yellow-500 ml-2">(B-Through: ${char.breakthroughPoints[attr.key]}/5)</span>` : '';
+                
+                container.innerHTML += `
+                    <div class="bg-dark rounded-lg border border-gray-800 p-3">
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-${attr.color}-400 font-bold uppercase tracking-wide">${attr.name}</span>
+                            <span class="font-semibold">${val} / ${char.cap} ${btText}</span>
                         </div>
-                        
-                        <!-- File Footer -->
-                        <div class="p-3 bg-white flex items-center justify-between border-t border-slate-50">
-                            <span class="font-mono text-[10px] text-slate-500 truncate max-w-[80%]">${archivo.nombre}</span>
-                            <span class="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">${archivo.tipo}</span>
+                        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                            <div class="bg-${attr.color}-500 h-3 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                         </div>
                     </div>
                 `;
             });
+        }
 
-            html += `
+        function renderModalMilestones(char) {
+            const container = document.getElementById('modal-milestone-cards');
+            const milestones = (char.milestones || []).filter(m => !isAutomaticSocietyMilestone(m)).map(normalizeMilestone);
+            if (milestones.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 italic text-xs col-span-full">Sin hitos registrados.</div>';
+                return;
+            }
+            container.innerHTML = milestones.map(m => `
+                <article class="min-h-48 rounded-xl border p-3 flex flex-col justify-between ${getMilestoneColor(m.type)}">
+                    ${m.image ? `<img src="${m.image}" alt="${m.name}" class="w-full aspect-square object-cover rounded-lg border border-white/10 mb-3" onerror="this.remove()">` : '<div class="w-full aspect-square rounded-lg border border-white/10 bg-black/20 mb-3 flex items-center justify-center text-3xl">✦</div>'}
+                    <div>
+                        <p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${m.type}</p>
+                        <h5 class="font-bold text-base leading-tight mt-1">${m.name}</h5>
+                        <p class="text-xs font-normal leading-relaxed mt-2 opacity-90 whitespace-pre-line">${m.description}</p>
                     </div>
+                </article>
+            `).join('');
+        }
+
+        function renderSocieties(char) {
+            const container = document.getElementById('modal-societies');
+            const socialMilestones = (char.milestones || []).filter(isAutomaticSocietyMilestone).map(normalizeMilestone);
+            if (socialMilestones.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 italic text-xs">Sin sociedades registradas todavía.</p>';
+                return;
+            }
+            container.innerHTML = socialMilestones.map(m => `
+                <div class="rounded-lg border px-3 py-2 ${getMilestoneColor(m.type)}">
+                    <div class="flex justify-between gap-2 text-xs">
+                        <strong>${m.type}</strong>
+                        <span>${m.name}</span>
+                    </div>
+                    ${m.description ? `<p class="text-xs font-normal mt-1 opacity-90">${m.description}</p>` : ''}
                 </div>
-            `;
-
-            return html;
+            `).join('');
         }
 
-        /* ==========================================================================
-           4. CORE FUNCTIONS (Controlador de vistas y filtros)
-           ========================================================================== */
-
-        function renderView() {
-            const container = document.getElementById('view-content');
-            container.classList.add('opacity-0');
-
-            setTimeout(() => {
-                if (state.currentView === 'countries') {
-                    container.innerHTML = viewCountries();
-                } else if (state.currentView === 'country') {
-                    container.innerHTML = viewCountryDetail();
-                } else if (state.currentView === 'city') {
-                    container.innerHTML = viewCityDetail();
-                } else if (state.currentView === 'memory') {
-                    container.innerHTML = viewMemoryDetail();
-                }
-                container.classList.remove('opacity-0');
-            }, 200);
+        function toggleSocieties() {
+            document.getElementById('modal-societies').classList.toggle('hidden');
         }
 
-        function renderBreadcrumbs() {
-            const breadcrumbs = document.getElementById('breadcrumbs');
-            let html = `
-                <button onclick="router.go('countries')" class="hover:text-indigo-600 transition-colors">Mis Países</button>
-            `;
-
-            if (state.selectedCountry) {
-                html += `
-                    <span class="mx-2 text-slate-300">/</span>
-                    <button onclick="router.go('country', { country: ${JSON.stringify(state.selectedCountry).replace(/"/g, '&quot;')} })" class="hover:text-indigo-600 transition-colors">${state.selectedCountry.nombre}</button>
-                `;
-            }
-
-            if (state.selectedCity) {
-                html += `
-                    <span class="mx-2 text-slate-300">/</span>
-                    <button onclick="router.go('city', { country: ${JSON.stringify(state.selectedCountry).replace(/"/g, '&quot;')}, city: ${JSON.stringify(state.selectedCity).replace(/"/g, '&quot;')} })" class="hover:text-indigo-600 transition-colors">${state.selectedCity.nombre}</button>
-                `;
-            }
-
-            if (state.selectedMemory) {
-                html += `
-                    <span class="mx-2 text-slate-300">/</span>
-                    <span class="text-slate-800 font-semibold truncate max-w-[120px]">${state.selectedMemory.titulo}</span>
-                `;
-            }
-
-            breadcrumbs.innerHTML = html;
-        }
-
-        // Buscador de países interactivo en página principal
-        function filterCountries() {
-            const query = document.getElementById('country-search').value.toLowerCase();
-            const cards = document.querySelectorAll('.country-card');
-
-            cards.forEach(card => {
-                const name = card.getAttribute('data-name');
-                if (name.includes(query)) {
-                    card.style.display = 'flex';
+        function confirmPoints() {
+            const char = state.characters.find(c => c.id === currentCharId);
+            const posAttr = document.getElementById('assign-pos').value;
+            const negAttr = document.getElementById('assign-neg').value;
+            
+            // Apply Negative
+            char.stats[negAttr] = Math.max(1, char.stats[negAttr] - char.points.neg);
+            
+            // Apply Positive (with Cap & Breakthrough logic)
+            let pointsToAdd = char.points.pos;
+            let currentStat = char.stats[posAttr];
+            
+            if (currentStat < char.cap) {
+                let space = char.cap - currentStat;
+                if (pointsToAdd <= space) {
+                    char.stats[posAttr] += pointsToAdd;
+                    pointsToAdd = 0;
                 } else {
-                    card.style.display = 'none';
+                    char.stats[posAttr] = char.cap;
+                    pointsToAdd -= space;
                 }
-            });
-        }
-
-        // Filtro rápido de tipo de multimedia (Imágenes vs Videos) en detalle de país
-        function filterMediaPool(type) {
-            // Cambiar botón activo visualmente
-            const buttons = document.querySelectorAll('.media-filter-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-800');
-                btn.classList.add('text-slate-500');
-            });
-
-            const activeBtn = event.currentTarget;
-            activeBtn.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-800');
-            activeBtn.classList.remove('text-slate-500');
-
-            // Filtrar elementos de la UI
-            const items = document.querySelectorAll('.media-item-box');
-            items.forEach(item => {
-                if (type === 'all' || item.getAttribute('data-type') === type) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        /* ==========================================================================
-           5. VISOR DE MULTIMEDIA (LIGHTBOX)
-           ========================================================================== */
-
-        function openLightbox(mediaList, startIndex) {
-            state.allMediaPool = mediaList;
-            state.activeMediaIndex = startIndex;
-            
-            const lightbox = document.getElementById('lightbox');
-            lightbox.classList.remove('hidden');
-            lightbox.classList.add('flex');
-            
-            updateLightboxContent();
-        }
-
-        function closeLightbox() {
-            const lightbox = document.getElementById('lightbox');
-            lightbox.classList.add('hidden');
-            lightbox.classList.remove('flex');
-            
-            // Pausar cualquier video activo al cerrar
-            const mediaBox = document.getElementById('lightbox-media-box');
-            mediaBox.innerHTML = '';
-        }
-
-        function updateLightboxContent() {
-            const activeMedia = state.allMediaPool[state.activeMediaIndex];
-            if (!activeMedia) return;
-
-            const title = document.getElementById('lightbox-title');
-            const subtitle = document.getElementById('lightbox-subtitle');
-            const counter = document.getElementById('lightbox-counter');
-            const mediaBox = document.getElementById('lightbox-media-box');
-
-            title.innerText = activeMedia.nombre;
-            subtitle.innerText = activeMedia.recuerdoTitulo ? `${activeMedia.recuerdoTitulo} (${activeMedia.ciudadNombre})` : `Archivo local en /multimedia/`;
-            counter.innerText = `${state.activeMediaIndex + 1} de ${state.allMediaPool.length}`;
-
-            // Inyectar HTML apropiado según si es Imagen o Video
-            if (activeMedia.tipo === 'video') {
-                mediaBox.innerHTML = `
-                    <video src="${activeMedia.url}" controls autoplay class="max-w-full max-h-[70vh] rounded-xl shadow-2xl" id="lightbox-video-element"></video>
-                `;
-            } else {
-                mediaBox.innerHTML = `
-                    <img src="${activeMedia.url}" alt="${activeMedia.nombre}" class="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl">
-                `;
             }
 
-            // Crear Thumbnails de navegación rápida
-            const thumbsContainer = document.getElementById('lightbox-thumbs');
-            thumbsContainer.innerHTML = state.allMediaPool.map((m, idx) => {
-                const isActive = idx === state.activeMediaIndex;
-                const isVideo = m.tipo === 'video';
+            // If points remaining and at cap, they go to breakthrough
+            if (pointsToAdd > 0 && char.stats[posAttr] >= char.cap) {
+                char.breakthroughPoints[posAttr] += pointsToAdd;
+                if (char.breakthroughPoints[posAttr] >= 5) {
+                    // Level UP!
+                    char.level++;
+                    char.cap += 100;
+                    char.stats[posAttr]++; // Becomes 101 for instance
+                    char.breakthroughPoints[posAttr] -= 5; // keep remainder
+                    alert(`¡${char.name} ha ROTO SU LÍMITE en ${posAttr} y ha subido a NIVEL ${char.level}! Su nuevo tope es ${char.cap}.`);
+                }
+            }
+
+            enforceDestinyStats(char);
+
+            // Reset points
+            char.points.pos = 0;
+            char.points.neg = 0;
+            char.pendingAction = null;
+            
+            // Recheck if needs milestone immediately after point assignment
+            if (char.battles > 0 && char.battles % 20 === 0) {
+                // If they haven't claimed it yet, let's just queue it up visually.
+                // To keep simple, we don't auto force it here, it will appear on next click or if already flagged.
+            }
+
+            saveState();
+            openCharModal(char.id); // Refresh
+        }
+
+        function confirmMilestone() {
+            const char = state.characters.find(c => c.id === currentCharId);
+            const type = document.getElementById('ms-type').value;
+            const name = document.getElementById('ms-name').value.trim();
+            const description = document.getElementById('ms-description').value.trim();
+            const image = document.getElementById('ms-image').value.trim();
+            
+            if (!name || !description) {
+                alert("Debes escribir el nombre y la descripción del hito.");
+                return;
+            }
+
+            const milestone = { type, name, description, image };
+            char.milestones.push(milestone);
+            if (isEquipmentMilestone(type)) {
+                char.equipment = char.equipment || [];
+                char.equipment.push(normalizeEquipment({ type, name, image, notes: description, attr: type === 'Montura / Vehículo' ? 'SPD' : 'STR', mode: type === 'Refugio / Territorio' ? 'buff' : 'add' }));
+            }
+            if (isMentalMilestone(type)) {
+                char.mental = char.mental || [];
+                char.mental.push(normalizeMentalMilestone({ type: type === 'Mutación / Marca Física' ? 'Mutación' : type, name, notes: description }));
+            }
+            char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1);
+            if (char.pendingAction !== 'points') char.pendingAction = null;
+
+            saveState();
+            openCharModal(char.id); // Refresh
+        }
+
+        let currentInventoryCharId = null;
+
+        function openInventoryModal(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) return;
+            currentInventoryCharId = charId;
+            char.equipment = char.equipment || [];
+            document.getElementById('inventory-title').innerText = `⚔️ Inventario de ${char.name}`;
+            setFormAddMode('equipment-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver los hitos ya asignados.`);
+            resetEquipmentForm(false);
+            renderEquipmentList(char);
+            document.getElementById('inventory-modal').classList.remove('hidden');
+        }
+
+        function closeInventoryModal() {
+            document.getElementById('inventory-modal').classList.add('hidden');
+            currentInventoryCharId = null;
+        }
+
+        function resetEquipmentForm(clearId = true) {
+            document.getElementById('equipment-form').reset();
+            if (clearId) document.getElementById('eq-id').value = '';
+            window.__editingEquipment = null;
+            syncEquipmentFormByType();
+        }
+
+        function syncEquipmentFormByType() {
+            const type = document.getElementById('eq-type').value;
+            const box = document.getElementById('eq-dynamic');
+            const item = window.__editingEquipment || {};
+            const commonAffinities = `${targetPickerHtml('eq-superior', 'Afinidad superior: personajes o tipos acumulables', item.superiorCharacters, item.superiorTypes, true, item.superiorPercent)}${targetPickerHtml('eq-inferior', 'Afinidad inferior: personajes o tipos acumulables', item.inferiorCharacters, item.inferiorTypes, true, item.inferiorPercent)}${targetPickerHtml('eq-immune', 'Inmunidad: personajes o tipos acumulables', item.immuneCharacters, item.immuneTypes)}`;
+            if (type === 'Arma') box.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Atributo que modifica</label><select id="eq-attr" class="inventory-input">${attrOptions(['MAG','STR'])}</select></div><div><label class="inventory-label">Potencia (1 a 100)</label><input id="eq-power" type="number" min="1" max="100" value="${escapeAttr(item.power || 1)}" class="inventory-input"></div></div>${commonAffinities}`;
+            if (type === 'Armadura') box.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Atributo que modifica</label><select id="eq-attr" class="inventory-input">${attrOptions(['INT','SPD'])}</select></div><div><label class="inventory-label">Potencia (1 a 35)</label><input id="eq-power" type="number" min="1" max="35" value="${escapeAttr(item.power || 1)}" class="inventory-input"></div></div>${commonAffinities}`;
+            if (type === 'Artefacto / Reliquia') box.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-4"><div><label class="inventory-label">Atributo que modifica</label><select id="eq-attr" class="inventory-input">${attrOptions(['MAG','STR'])}</select></div><div><label class="inventory-label">Efecto</label><select id="eq-mode" class="inventory-input"><option value="buff">Aumenta</option><option value="debuff">Disminuye</option></select></div><div><label class="inventory-label">Puntos</label><input id="eq-power" type="number" min="1" value="${escapeAttr(item.power || 1)}" class="inventory-input"></div><input id="eq-target" type="hidden" value="ally"></div>${targetPickerHtml('eq-affected', 'Personaje o tipo de personaje que afecta', item.affectedCharacters, item.affectedTypes)}${targetPickerHtml('eq-immune', 'Personajes inmunes', item.immuneCharacters, item.immuneTypes)}${targetPickerHtml('eq-superior', 'Afinidad superior y porcentaje que aumenta el efecto', item.superiorCharacters, item.superiorTypes, true, item.superiorPercent)}${targetPickerHtml('eq-inferior', 'Afinidad inferior y porcentaje que reduce el efecto', item.inferiorCharacters, item.inferiorTypes, true, item.inferiorPercent)}`;
+            if (type === 'Montura') box.innerHTML = `<div><label class="inventory-label">Cantidad de puntos que aumenta la velocidad propia</label><input id="eq-power" type="number" min="1" value="${escapeAttr(item.power || 1)}" class="inventory-input"></div><input id="eq-attr" type="hidden" value="SPD"><input id="eq-mode" type="hidden" value="add"><input id="eq-target" type="hidden" value="self">`;
+            if (type === 'Territorio') box.innerHTML = `<div><label class="inventory-label">Porcentaje que aumenta todos los atributos propios</label><input id="eq-power" type="number" min="1" max="100" value="${escapeAttr(item.power || 1)}" class="inventory-input"></div><input id="eq-attr" type="hidden" value="ALL"><input id="eq-mode" type="hidden" value="buff"><input id="eq-target" type="hidden" value="self">`;
+            if (item.attr && document.getElementById('eq-attr')) document.getElementById('eq-attr').value = item.attr;
+            if (item.mode && document.getElementById('eq-mode')) document.getElementById('eq-mode').value = item.mode;
+        }
+
+        document.getElementById('equipment-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const char = state.characters.find(c => c.id === currentInventoryCharId);
+            if (!char) return;
+            char.equipment = char.equipment || [];
+            const type = document.getElementById('eq-type').value;
+            const item = normalizeEquipment({
+                id: document.getElementById('eq-id').value || generateId(), type,
+                name: document.getElementById('eq-name').value.trim(), image: document.getElementById('eq-image').value.trim(),
+                attr: document.getElementById('eq-attr')?.value || 'STR', power: document.getElementById('eq-power')?.value || 0,
+                mode: document.getElementById('eq-mode')?.value || 'add', target: document.getElementById('eq-target')?.value || 'self',
+                notes: document.getElementById('eq-notes').value.trim(),
+                superiorCharacters: selectedOptions('eq-superior-chars'), superiorTypes: selectedOptions('eq-superior-types'), superiorPercent: document.getElementById('eq-superior-percent')?.value || 0,
+                inferiorCharacters: selectedOptions('eq-inferior-chars'), inferiorTypes: selectedOptions('eq-inferior-types'), inferiorPercent: document.getElementById('eq-inferior-percent')?.value || 0,
+                immuneCharacters: selectedOptions('eq-immune-chars'), immuneTypes: selectedOptions('eq-immune-types'),
+                affectedCharacters: selectedOptions('eq-affected-chars'), affectedTypes: selectedOptions('eq-affected-types')
+            });
+            item.superior = compactTargets(item.superiorCharacters, item.superiorTypes); item.inferior = compactTargets(item.inferiorCharacters, item.inferiorTypes); item.immune = compactTargets(item.immuneCharacters, item.immuneTypes); item.condition = compactTargets(item.affectedCharacters, item.affectedTypes);
+            if (!item.name) return alert('Debes nombrar la posesión.');
+            const index = char.equipment.findIndex(eq => eq.id === item.id);
+            if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
+            if (index >= 0) char.equipment[index] = item; else char.equipment.push(item);
+            window.__editingEquipment = null; saveState(); openInventoryModal(char.id);
+        });
+
+        function renderEquipmentList(char) {
+            const container = document.getElementById('equipment-list');
+            const items = (char.equipment || []).map(normalizeEquipment);
+            if (items.length === 0) {
+                container.innerHTML = '<div class="lg:col-span-2 text-gray-500 italic text-sm border border-dashed border-gray-700 rounded-xl p-6 text-center">Sin equipamiento ni posesiones activas.</div>';
+                return;
+            }
+            container.innerHTML = items.map(item => {
+                const attrName = ATTRS.find(a => a.key === item.attr)?.name || item.attr;
+                const modeText = item.mode === 'add' ? `+${item.power} puntos a ${attrName}` : `${item.mode === 'buff' ? '+' : '-'}${item.power}% en ${attrName}`;
                 return `
-                    <button onclick="setLightboxIndex(${idx})" class="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${isActive ? 'border-indigo-500 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}">
-                        <img src="${isVideo ? 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=80&q=80' : m.url}" class="w-full h-full object-cover">
-                    </button>
-                `;
+                    <article class="rounded-xl border p-4 ${getMilestoneColor(item.type)}">
+                        <div class="flex gap-3">
+                            ${item.image ? `<img src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" class="w-20 h-20 rounded-lg object-cover border border-white/10" onerror="this.remove()">` : '<div class="w-20 h-20 rounded-lg bg-black/20 border border-white/10 flex items-center justify-center text-3xl">⚔️</div>'}
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${escapeHtml(item.type)}</p>
+                                <h5 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h5>
+                                <p class="text-xs mt-1">${escapeHtml(modeText)} · objetivo: ${escapeHtml(item.target)}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-xs">
+                            <p><strong>Superior:</strong> ${escapeHtml(item.superior || '—')}</p><p><strong>Inferior:</strong> ${escapeHtml(item.inferior || '—')}</p>
+                            <p><strong>Inmunidad:</strong> ${escapeHtml(item.immune || '—')}</p><p><strong>Condición:</strong> ${escapeHtml(item.condition || '—')}</p>
+                        </div>
+                        ${item.notes ? `<p class="text-xs mt-3 opacity-90 whitespace-pre-line">${escapeHtml(item.notes)}</p>` : ''}
+                        <div class="flex gap-2 mt-4">
+                            <button onclick="editEquipment('${escapeAttr(item.id)}')" class="bg-black/20 hover:bg-black/30 border border-white/10 px-3 py-1 rounded text-xs font-bold">Editar</button>
+                            <button onclick="deleteEquipment('${escapeAttr(item.id)}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 px-3 py-1 rounded text-xs font-bold">Eliminar</button>
+                        </div>
+                    </article>`;
             }).join('');
         }
 
-        function setLightboxIndex(idx) {
-            state.activeMediaIndex = idx;
-            updateLightboxContent();
+        function editEquipment(itemId) {
+            const char = state.characters.find(c => c.id === currentInventoryCharId);
+            const item = (char?.equipment || []).map(normalizeEquipment).find(eq => eq.id === itemId);
+            if (!item) return;
+            window.__editingEquipment = item;
+            document.getElementById('eq-id').value = item.id;
+            document.getElementById('eq-type').value = item.type;
+            document.getElementById('eq-name').value = item.name;
+            document.getElementById('eq-image').value = item.image;
+            document.getElementById('eq-notes').value = item.notes;
+            syncEquipmentFormByType();
         }
 
-        function prevMedia() {
-            if (state.activeMediaIndex > 0) {
-                state.activeMediaIndex--;
-            } else {
-                state.activeMediaIndex = state.allMediaPool.length - 1; // Volver al final
-            }
-            updateLightboxContent();
+        function deleteEquipment(itemId) {
+            const char = state.characters.find(c => c.id === currentInventoryCharId);
+            if (!char || !confirm('¿Eliminar esta posesión?')) return;
+            char.equipment = (char.equipment || []).filter(eq => eq.id !== itemId);
+            saveState();
+            openInventoryModal(char.id);
         }
 
-        function nextMedia() {
-            if (state.activeMediaIndex < state.allMediaPool.length - 1) {
-                state.activeMediaIndex++;
-            } else {
-                state.activeMediaIndex = 0; // Volver al inicio
-            }
-            updateLightboxContent();
+
+        let currentMentalCharId = null;
+
+        function openMentalModal(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) return;
+            currentMentalCharId = charId;
+            char.mental = char.mental || [];
+            document.getElementById('mental-title').innerText = `🧠 Desarrollo de ${char.name}`;
+            setFormAddMode('mental-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver los hitos ya asignados.`);
+            hydrateMentalAttrOptions();
+            resetMentalForm(false);
+            renderMentalList(char);
+            document.getElementById('mental-modal').classList.remove('hidden');
         }
 
-        // Teclado del Lightbox
-        document.addEventListener('keydown', (e) => {
-            const lightbox = document.getElementById('lightbox');
-            if (lightbox.classList.contains('hidden')) return;
+        function closeMentalModal() {
+            document.getElementById('mental-modal').classList.add('hidden');
+            currentMentalCharId = null;
+        }
 
-            if (e.key === 'ArrowLeft') {
-                prevMedia();
-            } else if (e.key === 'ArrowRight') {
-                nextMedia();
-            } else if (e.key === 'Escape') {
-                closeLightbox();
-            }
+        function hydrateMentalAttrOptions() {}
+
+        function resetMentalForm(clearId = true) {
+            document.getElementById('mental-form').reset();
+            if (clearId) document.getElementById('mental-id').value = '';
+            window.__editingMental = null;
+            syncMentalFormByType();
+        }
+
+        function syncMentalFormByType() {
+            const type = document.getElementById('mental-type').value;
+            const box = document.getElementById('mental-dynamic');
+            const item = window.__editingMental || {};
+            if (type === 'Acontecimiento') box.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="inventory-label">Atributo al que se le agregan puntos</label><select id="mental-plus" class="mental-input">${attrOptions(['INT','STR','SPD','MAG'])}</select></div><div><label class="inventory-label">Atributo al que se le restan puntos</label><select id="mental-minus" class="mental-input">${attrOptions(['INT','STR','SPD','MAG'])}</select></div><div><label class="inventory-label">Cantidad de puntos</label><input id="mental-value" type="number" min="1" value="${escapeAttr(item.value || 25)}" class="mental-input"></div></div>`;
+            if (type === 'Sabiduría') box.innerHTML = `<div><label class="inventory-label">Cantidad de puntos que se suma a inteligencia</label><input id="mental-value" type="number" min="1" value="${escapeAttr(item.value || 25)}" class="mental-input"></div><input id="mental-plus" type="hidden" value="INT"><input id="mental-minus" type="hidden" value="STR">`;
+            if (type === 'Miedo') box.innerHTML = `${targetPickerHtml('mental-trigger', 'Tipo de personaje o personaje con el que se activa (acumulable)', item.triggerCharacters, item.triggerTypes)}<input id="mental-value" type="hidden" value="50"><input id="mental-plus" type="hidden" value="INT"><input id="mental-minus" type="hidden" value="STR"><p class="text-xs text-purple-200">Al activarse reduce el 50% de todos los atributos.</p>`;
+            if (type === 'Debilidad') box.innerHTML = `<div><label class="inventory-label">Atributo al que se le disminuye -25</label><select id="mental-minus" class="mental-input">${attrOptions(['INT','STR','SPD','MAG'])}</select></div>${targetPickerHtml('mental-aggravator', 'Personaje o tipo que aumenta la disminución y porcentaje que aumenta', item.aggravatorCharacters, item.aggravatorTypes, true, item.aggravatorPercent)}<input id="mental-value" type="hidden" value="25"><input id="mental-plus" type="hidden" value="INT">`;
+            if (type === 'Mutación') box.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Atributo al que se le agregan puntos</label><select id="mental-plus" class="mental-input">${attrOptions(['INT','STR','SPD','MAG'])}</select></div><div><label class="inventory-label">Cantidad de puntos que se suma</label><input id="mental-value" type="number" min="1" value="${escapeAttr(item.value || 25)}" class="mental-input"></div></div><input id="mental-minus" type="hidden" value="ALL"><p class="text-xs text-lime-200">La misma cantidad se resta a los demás atributos.</p>`;
+            if (item.plusAttr && document.getElementById('mental-plus')) document.getElementById('mental-plus').value = item.plusAttr;
+            if (item.minusAttr && document.getElementById('mental-minus')) document.getElementById('mental-minus').value = item.minusAttr;
+        }
+
+        document.getElementById('mental-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const char = state.characters.find(c => c.id === currentMentalCharId);
+            if (!char) return;
+            char.mental = char.mental || [];
+            const type = document.getElementById('mental-type').value;
+            const item = normalizeMentalMilestone({
+                id: document.getElementById('mental-id').value || generateId(), type,
+                name: document.getElementById('mental-name').value.trim(), image: document.getElementById('mental-image').value.trim(),
+                value: document.getElementById('mental-value')?.value || 25,
+                plusAttr: document.getElementById('mental-plus')?.value || 'INT', minusAttr: document.getElementById('mental-minus')?.value || 'STR',
+                notes: document.getElementById('mental-notes').value.trim(),
+                triggerCharacters: selectedOptions('mental-trigger-chars'), triggerTypes: selectedOptions('mental-trigger-types'),
+                aggravatorCharacters: selectedOptions('mental-aggravator-chars'), aggravatorTypes: selectedOptions('mental-aggravator-types'), aggravatorPercent: document.getElementById('mental-aggravator-percent')?.value || 0
+            });
+            item.trigger = compactTargets(item.triggerCharacters, item.triggerTypes); item.aggravator = compactTargets(item.aggravatorCharacters, item.aggravatorTypes);
+            if (!item.name) return alert('Debes nombrar el hito mental.');
+            const index = char.mental.findIndex(ms => ms.id === item.id);
+            if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
+            if (index >= 0) char.mental[index] = item; else char.mental.push(item);
+            window.__editingMental = null; saveState(); openMentalModal(char.id);
         });
 
-        /* ==========================================================================
-           6. ELEMENTOS AUXILIARES (MODAL DE INFO)
-           ========================================================================== */
-        
-        function toggleInfoModal() {
-            const modal = document.getElementById('info-modal');
-            modal.classList.toggle('hidden');
+        function renderMentalList(char) {
+            const container = document.getElementById('mental-list');
+            const items = (char.mental || []).map(normalizeMentalMilestone);
+            if (items.length === 0) { container.innerHTML = '<div class="lg:col-span-2 text-gray-500 italic text-sm border border-dashed border-gray-700 rounded-xl p-6 text-center">Sin hitos mentales activos.</div>'; return; }
+            container.innerHTML = items.map(item => {
+                const plusName = ATTRS.find(a => a.key === item.plusAttr)?.name || item.plusAttr;
+                const minusName = ATTRS.find(a => a.key === item.minusAttr)?.name || item.minusAttr;
+                return `<article class="rounded-xl border p-4 ${getMilestoneColor(item.type)}"><p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${escapeHtml(item.type)}</p><h5 class="font-bold text-lg">${escapeHtml(item.name)}</h5><p class="text-xs mt-2">${describeMentalEffect(item, plusName, minusName)}</p><p class="text-xs mt-2"><strong>Miedo:</strong> ${escapeHtml(item.trigger || '—')} · <strong>Agravante:</strong> ${escapeHtml(item.aggravator || '—')}</p>${item.notes ? `<p class="text-xs mt-3 opacity-90 whitespace-pre-line">${escapeHtml(item.notes)}</p>` : ''}<div class="flex gap-2 mt-4"><button onclick="editMental('${escapeAttr(item.id)}')" class="bg-black/20 hover:bg-black/30 border border-white/10 px-3 py-1 rounded text-xs font-bold">Editar</button><button onclick="deleteMental('${escapeAttr(item.id)}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 px-3 py-1 rounded text-xs font-bold">Eliminar</button></div></article>`;
+            }).join('');
         }
 
-        /* ==========================================================================
-           7. INITIALIZATION ON RUNTIME
-           ========================================================================== */
-        
-        window.onload = function() {
-            // Inicializar en la vista de paises
-            router.go('countries');
-        };
+        function describeMentalEffect(item, plusName, minusName) {
+            if (item.type === 'Sabiduría / Revelación' || item.type === 'Sabiduría') return `+${item.value} permanente en Inteligencia.`;
+            if (item.type === 'Miedo / Trauma' || item.type === 'Miedo') return 'Reduce todos los atributos un 50% si aparece el detonante.';
+            if (item.type === 'Debilidad') return `-25 en ${minusName}; el agravante puede aumentar la reducción porcentualmente.`;
+            if (item.type === 'Mutación') return `+${item.value} en ${plusName} y -${item.value} en los demás atributos.`;
+            return `+${item.value} en ${plusName} y -${item.value} en ${minusName}.`;
+        }
+
+        function editMental(itemId) {
+            const char = state.characters.find(c => c.id === currentMentalCharId);
+            const item = (char?.mental || []).map(normalizeMentalMilestone).find(ms => ms.id === itemId);
+            if (!item) return;
+            window.__editingMental = item;
+            document.getElementById('mental-id').value = item.id;
+            document.getElementById('mental-type').value = item.type;
+            document.getElementById('mental-name').value = item.name;
+            document.getElementById('mental-image').value = item.image || '';
+            document.getElementById('mental-notes').value = item.notes;
+            syncMentalFormByType();
+        }
+
+        function deleteMental(itemId) {
+            const char = state.characters.find(c => c.id === currentMentalCharId);
+            if (!char || !confirm('¿Eliminar este hito mental?')) return;
+            char.mental = (char.mental || []).filter(ms => ms.id !== itemId);
+            saveState(); openMentalModal(char.id);
+        }
+
+
+
+        let currentWorldCharId = null;
+        let currentDestinyCharId = null;
+
+        function getSharedTeamBattles(charA, charB) {
+            const rel = state.relationships[getRelKey(charA.id, charB.id)] || {};
+            return Number(rel.totalAllies ?? rel.allies ?? 0);
+        }
+
+        function eligibleCompanionOptionsHtml(char, selected = '') {
+            return state.characters.filter(candidate => candidate.id !== char.id && getSharedTeamBattles(char, candidate) >= 15)
+                .map(candidate => `<option value="${escapeAttr(candidate.id)}" ${candidate.id === selected ? 'selected' : ''}>${escapeHtml(getDisplayName(candidate))} · ${getSharedTeamBattles(char, candidate)} batallas juntos</option>`).join('');
+        }
+
+        function worldMemberOptionsHtml(char, selected = []) {
+            return state.characters.filter(candidate => candidate.id !== char.id)
+                .map(candidate => `<option value="${escapeAttr(candidate.id)}" ${selected.includes(candidate.id) ? 'selected' : ''}>${escapeHtml(getDisplayName(candidate))}</option>`).join('');
+        }
+
+        function hasCompanionLink(charAId, charBId) {
+            const a = state.characters.find(c => c.id === charAId);
+            const b = state.characters.find(c => c.id === charBId);
+            if (!a || !b) return false;
+            return normalizeWorldStatus(a.world).companions.includes(charBId) || normalizeWorldStatus(b.world).companions.includes(charAId);
+        }
+
+        function isValidClanFor(char, memberIds) {
+            const ids = [char.id, ...memberIds].filter(Boolean);
+            if (ids.length < 3) return false;
+            for (let i = 0; i < ids.length; i++) {
+                for (let j = i + 1; j < ids.length; j++) {
+                    if (!hasCompanionLink(ids[i], ids[j])) return false;
+                }
+            }
+            return true;
+        }
+
+        function openWorldModal(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) return;
+            currentWorldCharId = charId;
+            char.world = normalizeWorldStatus(char.world);
+            document.getElementById('world-title').innerText = `🌎 Mundo de ${getDisplayName(char)}`;
+            setFormAddMode('world-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver sus hitos de mundo ya asignados.`);
+            resetWorldForm(false);
+            renderWorldSummary(char);
+            document.getElementById('world-modal').classList.remove('hidden');
+        }
+
+        function closeWorldModal() {
+            document.getElementById('world-modal').classList.add('hidden');
+            currentWorldCharId = null;
+        }
+
+        function resetWorldForm(clearId = true) {
+            document.getElementById('world-form').reset();
+            if (clearId) document.getElementById('world-id').value = '';
+            window.__editingWorld = null;
+            syncWorldFormByType();
+        }
+
+        function syncWorldFormByType() {
+            const char = state.characters.find(c => c.id === currentWorldCharId);
+            const type = document.getElementById('world-type').value;
+            const item = window.__editingWorld || {};
+            const box = document.getElementById('world-dynamic');
+            if (!char || !box) return;
+            if (type === 'Compañero') box.innerHTML = `<div><label class="inventory-label">Compañero (+15 batallas juntos en el mismo equipo)</label><select id="world-companion" required class="world-input"><option value="">Selecciona...</option>${eligibleCompanionOptionsHtml(char, item.companionId)}</select><p class="text-xs text-gray-500 mt-1">Solo aparecen personajes con al menos 15 batallas compartidas como aliados.</p></div>`;
+            if (type === 'Clan') box.innerHTML = `<div><label class="inventory-label">Personajes que lo conforman</label><select id="world-members" multiple size="6" required class="world-input">${worldMemberOptionsHtml(char, item.memberIds || [])}</select><p class="text-xs text-gray-500 mt-1">Debe existir un triángulo de compañerismo: todos los miembros del clan deben ser compañeros entre sí. Un nuevo miembro también debe ser compañero de todos.</p></div>`;
+            if (type === 'Apodo') box.innerHTML = `<p class="text-xs text-yellow-200">El nombre del hito será el apodo visible del personaje.</p>`;
+            if (type === 'Misión Objetivo') box.innerHTML = `<div><label class="inventory-label">Selector</label><select id="world-mission-mode" class="world-input"><option value="destroy">Destruir</option><option value="protect">Proteger</option></select></div>${targetPickerHtml('world-target', 'Personaje o tipo de personaje selector acumulable', item.targetCharacters, item.targetTypes)}`;
+            if (type === 'Deuda') box.innerHTML = `${targetPickerHtml('world-target', 'Personaje a vencer o tipo de personaje a vencer selector acumulable', item.targetCharacters, item.targetTypes)}<input id="world-debt-active" type="hidden" value="true">`;
+            if (item.missionMode && document.getElementById('world-mission-mode')) document.getElementById('world-mission-mode').value = item.missionMode;
+        }
+
+        function renderWorldSummary(char) {
+            const world = normalizeWorldStatus(char.world);
+            if (!world.milestones.length) { document.getElementById('world-summary').innerHTML = '<div class="lg:col-span-2 text-gray-500 italic text-sm border border-dashed border-gray-700 rounded-xl p-6 text-center">Sin hitos de mundo activos.</div>'; return; }
+            document.getElementById('world-summary').innerHTML = world.milestones.map(item => {
+                const companion = state.characters.find(c => c.id === item.companionId);
+                const members = item.memberIds.map(id => state.characters.find(c => c.id === id)).filter(Boolean).map(getDisplayName).join(', ');
+                const targets = compactTargets(item.targetCharacters, item.targetTypes);
+                return `<article class="rounded-xl border p-4 ${getMilestoneColor(item.type === 'Apodo' ? 'Título / Apodo' : item.type)}"><p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${escapeHtml(item.type)}</p><h5 class="font-bold text-lg">${escapeHtml(item.name)}</h5><p class="text-xs mt-2"><strong>Compañero:</strong> ${escapeHtml(companion ? getDisplayName(companion) : '—')} · <strong>Clan:</strong> ${escapeHtml(members || '—')} · <strong>Objetivos:</strong> ${escapeHtml(targets || '—')}</p><p class="text-xs mt-2"><strong>Modo:</strong> ${item.missionMode === 'protect' ? 'Proteger' : 'Destruir'} ${item.type === 'Deuda' ? `· ${item.debtActive ? 'Activa' : 'Saldada'}` : ''}</p>${item.narrative ? `<p class="text-xs mt-3 opacity-90 whitespace-pre-line">${escapeHtml(item.narrative)}</p>` : ''}<div class="flex gap-2 mt-4"><button onclick="editWorld('${escapeAttr(item.id)}')" class="bg-black/20 hover:bg-black/30 border border-white/10 px-3 py-1 rounded text-xs font-bold">Editar</button><button onclick="deleteWorld('${escapeAttr(item.id)}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 px-3 py-1 rounded text-xs font-bold">Eliminar</button></div></article>`;
+            }).join('');
+        }
+
+        document.getElementById('world-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const char = state.characters.find(c => c.id === currentWorldCharId);
+            if (!char) return;
+            char.world = normalizeWorldStatus(char.world);
+            const type = document.getElementById('world-type').value;
+            const item = normalizeWorldMilestone({
+                id: document.getElementById('world-id').value || generateId(), type,
+                name: document.getElementById('world-name').value.trim(), narrative: document.getElementById('world-narrative').value.trim(),
+                companionId: document.getElementById('world-companion')?.value || '', memberIds: selectedOptions('world-members'),
+                missionMode: document.getElementById('world-mission-mode')?.value || 'destroy', targetCharacters: selectedOptions('world-target-chars'), targetTypes: selectedOptions('world-target-types'), debtActive: true
+            });
+            if (!item.name || !item.narrative) return alert('Debes completar nombre y narrativa.');
+            if (type === 'Compañero' && !item.companionId) return alert('Selecciona un compañero válido con +15 batallas en el mismo equipo.');
+            if (type === 'Clan' && !isValidClanFor(char, item.memberIds)) return alert('El clan requiere un triángulo donde todos sus miembros sean compañeros entre sí.');
+            if ((type === 'Misión Objetivo' || type === 'Deuda') && !item.targetCharacters.length && !item.targetTypes.length) return alert('Selecciona al menos un personaje o tipo de personaje.');
+            const index = char.world.milestones.findIndex(ms => ms.id === item.id);
+            if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
+            if (index >= 0) char.world.milestones[index] = item; else char.world.milestones.push(item);
+            char.world = normalizeWorldStatus(char.world);
+            saveState(); openWorldModal(char.id);
+        });
+
+        function editWorld(itemId) {
+            const char = state.characters.find(c => c.id === currentWorldCharId);
+            const item = normalizeWorldStatus(char?.world).milestones.find(ms => ms.id === itemId);
+            if (!item) return;
+            window.__editingWorld = item;
+            document.getElementById('world-id').value = item.id;
+            document.getElementById('world-type').value = item.type;
+            document.getElementById('world-name').value = item.name;
+            document.getElementById('world-narrative').value = item.narrative;
+            syncWorldFormByType();
+        }
+
+        function deleteWorld(itemId) {
+            const char = state.characters.find(c => c.id === currentWorldCharId);
+            if (!char || !confirm('¿Eliminar este hito de mundo?')) return;
+            char.world = normalizeWorldStatus(char.world);
+            char.world.milestones = char.world.milestones.filter(ms => ms.id !== itemId);
+            char.world = normalizeWorldStatus(char.world);
+            saveState(); openWorldModal(char.id);
+        }
+
+        function hydrateDestinyAttrOptions() {
+            const html = ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('');
+            const attr = document.getElementById('destiny-attr');
+            if (attr) attr.innerHTML = html;
+        }
+
+        function openDestinyModal(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) return;
+            currentDestinyCharId = charId;
+            char.destiny = normalizeDestiny(char.destiny);
+            document.getElementById('destiny-title').innerText = `🔮 Destino de ${getDisplayName(char)}`;
+            setFormAddMode('destiny-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles.`);
+            resetDestinyForm(false);
+            renderDestinyList(char);
+            document.getElementById('destiny-modal').classList.remove('hidden');
+        }
+
+        function closeDestinyModal() {
+            document.getElementById('destiny-modal').classList.add('hidden');
+            currentDestinyCharId = null;
+        }
+
+        function resetDestinyForm(clearId = true) {
+            document.getElementById('destiny-form').reset();
+            if (clearId) document.getElementById('destiny-id').value = '';
+            window.__editingDestiny = null;
+            syncDestinyFormByType();
+        }
+
+        function syncDestinyFormByType() {
+            const type = document.getElementById('destiny-type').value;
+            const item = window.__editingDestiny || {};
+            const casterLabel = type === 'Bendición' ? 'Quién puso la bendición' : 'Quién puso la maldición';
+            let html = '';
+            if (type === 'Maldición' || type === 'Bendición') html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">${casterLabel}</label><select id="destiny-caster" class="destiny-input"><option value="">Entidad externa / desconocida</option>${rosterOptionsHtml([item.casterId].filter(Boolean), currentDestinyCharId)}</select></div><div><label class="inventory-label">Atributo ${type === 'Maldición' ? 'maldito (0 pts)' : 'bendito (100 pts)'}</label><select id="destiny-attr" class="destiny-input"></select></div></div>`;
+            if (type === 'Juramento') html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Riesgo o superación</label><select id="destiny-oath-path" class="destiny-input"><option value="risk">Riesgo (+40; tributo si pierde)</option><option value="overcome">Superación (-40; recompensa si gana)</option></select></div><div><label class="inventory-label">Tributo al que se sumará o descontará 40 pts</label><select id="destiny-attr" class="destiny-input"></select></div></div>`;
+            document.getElementById('destiny-dynamic').innerHTML = html;
+            hydrateDestinyAttrOptions();
+            if (item.attr && document.getElementById('destiny-attr')) document.getElementById('destiny-attr').value = item.attr;
+            if (item.oathPath && document.getElementById('destiny-oath-path')) document.getElementById('destiny-oath-path').value = item.oathPath;
+        }
+
+        document.getElementById('destiny-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const char = state.characters.find(c => c.id === currentDestinyCharId);
+            if (!char) return;
+            char.destiny = normalizeDestiny(char.destiny);
+            const item = normalizeDestinyMilestone({
+                id: document.getElementById('destiny-id').value || generateId(), type: document.getElementById('destiny-type').value,
+                name: document.getElementById('destiny-name').value.trim(), narrative: document.getElementById('destiny-notes').value.trim(),
+                casterId: document.getElementById('destiny-caster')?.value || '', attr: document.getElementById('destiny-attr')?.value || 'STR', oathPath: document.getElementById('destiny-oath-path')?.value || 'risk'
+            });
+            if (!item.name || !item.narrative) return alert('Debes completar nombre y narrativa.');
+            const index = char.destiny.milestones.findIndex(ms => ms.id === item.id);
+            if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
+            if (index >= 0) char.destiny.milestones[index] = item; else char.destiny.milestones.push(item);
+            char.destiny = normalizeDestiny(char.destiny);
+            enforceDestinyStats(char);
+            saveState(); openDestinyModal(char.id);
+        });
+
+        function renderDestinyList(char) {
+            const destiny = normalizeDestiny(char.destiny);
+            const box = document.getElementById('destiny-list');
+            if (!destiny.milestones.length) { box.innerHTML = '<div class="text-gray-500 italic text-sm border border-dashed border-gray-700 rounded-xl p-6 text-center">Sin hitos de destino activos.</div>'; return; }
+            box.innerHTML = destiny.milestones.map(item => {
+                const caster = state.characters.find(c => c.id === item.casterId);
+                const attrName = ATTRS.find(a => a.key === item.attr)?.name || item.attr;
+                return `<article class="rounded-xl border p-4 ${getMilestoneColor(item.type === 'Bendición' ? 'Bendición / Don' : item.type === 'Juramento' ? 'Pacto / Juramento' : item.type)}"><p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${escapeHtml(item.type)}</p><h5 class="font-bold text-lg">${escapeHtml(item.name)}</h5><p class="text-xs mt-2"><strong>Atributo:</strong> ${escapeHtml(attrName)} · <strong>Origen:</strong> ${escapeHtml(caster ? getDisplayName(caster) : 'Entidad externa / desconocida')} ${item.type === 'Juramento' ? `· <strong>Camino:</strong> ${item.oathPath === 'risk' ? 'Riesgo' : 'Superación'}` : ''}</p><p class="text-xs mt-3 opacity-90 whitespace-pre-line">${escapeHtml(item.narrative)}</p><div class="flex gap-2 mt-4"><button onclick="editDestiny('${escapeAttr(item.id)}')" class="bg-black/20 hover:bg-black/30 border border-white/10 px-3 py-1 rounded text-xs font-bold">Editar</button><button onclick="deleteDestiny('${escapeAttr(item.id)}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 px-3 py-1 rounded text-xs font-bold">Eliminar</button></div></article>`;
+            }).join('');
+        }
+
+        function editDestiny(itemId) {
+            const char = state.characters.find(c => c.id === currentDestinyCharId);
+            const item = normalizeDestiny(char?.destiny).milestones.find(ms => ms.id === itemId);
+            if (!item) return;
+            window.__editingDestiny = item;
+            document.getElementById('destiny-id').value = item.id;
+            document.getElementById('destiny-type').value = item.type;
+            document.getElementById('destiny-name').value = item.name;
+            document.getElementById('destiny-notes').value = item.narrative;
+            syncDestinyFormByType();
+        }
+
+        function deleteDestiny(itemId) {
+            const char = state.characters.find(c => c.id === currentDestinyCharId);
+            if (!char || !confirm('¿Eliminar este hito de destino?')) return;
+            char.destiny = normalizeDestiny(char.destiny);
+            char.destiny.milestones = char.destiny.milestones.filter(ms => ms.id !== itemId);
+            char.destiny = normalizeDestiny(char.destiny);
+            enforceDestinyStats(char);
+            saveState(); openDestinyModal(char.id);
+        }
+
+        function updateBattleButton() {
+            const btn = document.getElementById('btn-start-battle');
+            if (state.characters.length < 8) {
+                btn.disabled = true;
+                btn.innerText = `Recluta al menos 8 (Faltan ${8 - state.characters.length})`;
+            } else {
+                btn.disabled = false;
+                btn.innerText = "Iniciar Batalla 4v4";
+            }
+        }
+
+        let currentBattle = null;
+
+        function startBattle() {
+            document.getElementById('btn-start-battle').classList.add('hidden');
+            document.getElementById('battle-arena').classList.remove('hidden');
+            document.getElementById('battle-actions').classList.add('hidden');
+            document.getElementById('battle-log').innerHTML = '';
+            
+            // 1. Matchmaking with Rotation
+            let fightersIds = [];
+            let tempPool = [...state.rotationPool];
+            
+            while (fightersIds.length < 8) {
+                if (tempPool.length === 0) {
+                    // Refill pool with characters NOT already chosen in this selection
+                    tempPool = state.characters.map(c => c.id).filter(id => !fightersIds.includes(id));
+                }
+                const randIdx = Math.floor(Math.random() * tempPool.length);
+                fightersIds.push(tempPool.splice(randIdx, 1)[0]);
+            }
+            
+            // Update the real pool
+            state.rotationPool = tempPool;
+
+            // 2. Assign Teams
+            const redTeam = fightersIds.slice(0, 4).map(id => state.characters.find(c => c.id === id));
+            const blueTeam = fightersIds.slice(4, 8).map(id => state.characters.find(c => c.id === id));
+
+            // Setup current battle state
+            currentBattle = { redTeam, blueTeam, redWins: 0, blueWins: 0, duelsFought: 0, duelResults: [] };
+            
+            renderTeam('red-corner', redTeam);
+            renderTeam('blue-corner', blueTeam);
+            
+            // Start combat sequence
+            setTimeout(executeCombat, 1000);
+        }
+
+        function renderTeam(containerId, team) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            team.forEach((char, idx) => {
+                container.innerHTML += `
+                    <div class="card-container perspective-1000" id="${containerId}-card-${idx}">
+                        <div class="card-flipper transform-style-3d transition-transform-duration">
+                            <!-- Card Front (Stats) - Rotated by default -->
+                            <div class="card-front backface-hidden bg-card border border-gray-700 flex flex-col">
+                                ${getImageHtml(char.image, char.name, 'w-full h-24 object-cover rounded-t-lg')}
+                                <div class="p-2 text-center flex-1 flex flex-col justify-between">
+                                    <h4 class="text-xs font-bold truncate text-white">${getDisplayName(char)}</h4>
+                                    <div class="grid grid-cols-2 gap-1 text-[10px] mt-1">
+                                        <div class="bg-gray-800 rounded text-blue-400">IN ${getDisplayedStat(char, 'INT')}</div>
+                                        <div class="bg-gray-800 rounded text-red-400">FZ ${getDisplayedStat(char, 'STR')}</div>
+                                        <div class="bg-gray-800 rounded text-yellow-400">VL ${getDisplayedStat(char, 'SPD')}</div>
+                                        <div class="bg-gray-800 rounded text-purple-400">MG ${getDisplayedStat(char, 'MAG')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Card Back (Logo) -->
+                            <div class="card-back backface-hidden">
+                                ⚔️
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function entryMatches(text, targetChar) {
+            const haystack = String(text || '').toLowerCase();
+            if (!haystack || !targetChar) return false;
+            return haystack.split(',').some(raw => {
+                const entry = raw.replace(/[+-]?\d+%?/g, '').trim();
+                return entry && `${targetChar.name} ${targetChar.type || ''}`.toLowerCase().includes(entry);
+            });
+        }
+
+        function firstPercent(text, fallback = 0) {
+            const match = String(text || '').match(/([+-]?\d+(?:\.\d+)?)\s*%?/);
+            return match ? Number(match[1]) : fallback;
+        }
+
+        function getEffectiveStat(char, attrKey, opponent, allies = [], enemies = []) {
+            let base = Number(char.stats[attrKey] || 0);
+            const world = normalizeWorldStatus(char.world);
+            const destiny = normalizeDestiny(char.destiny);
+            const clanIds = getTeamClanIds(allies);
+            if (destiny.blessingAttr === attrKey) base = 100;
+            if (destiny.curseAttr === attrKey) return 0;
+            let additive = 0;
+            let percentBuff = 0;
+            let percentReduction = 0;
+            let protectedSpeedBuff = 0;
+            const hasRefuge = (char.equipment || []).some(eq => ['Refugio / Territorio','Territorio'].includes(normalizeEquipment(eq).type));
+
+            if (clanIds.has(char.id)) additive += 25;
+            else additive += allies.filter(ally => ally.id !== char.id && areCompanions(char, ally)).length * 10;
+            if (world.missionOffense && characterMatchesQuery(opponent, world.missionOffense)) additive += 15;
+            if (world.missionProtect && enemies.some(enemy => characterMatchesQuery(enemy, world.missionProtect))) additive -= 20;
+            if (world.debtActive) additive -= 5;
+            if (destiny.oathAttr === attrKey && destiny.oathPath === 'risk') additive += 40;
+            if (destiny.oathAttr === attrKey && destiny.oathPath === 'overcome') additive -= 40;
+
+            (char.mental || []).map(normalizeMentalMilestone).forEach(item => {
+                const isTriggered = entryMatches(item.trigger, opponent);
+                const isAggravated = entryMatches(item.aggravator, opponent);
+                if (item.type === 'Acontecimiento' || item.type === 'Mutación') {
+                    if (item.plusAttr === attrKey) additive += item.value;
+                    if (item.minusAttr === attrKey || (item.type === 'Mutación' && item.plusAttr !== attrKey)) additive -= item.value;
+                }
+                if ((item.type === 'Sabiduría / Revelación' || item.type === 'Sabiduría') && attrKey === 'INT') additive += item.value;
+                if ((item.type === 'Miedo / Trauma' || item.type === 'Miedo') && isTriggered) percentReduction += 50;
+                if (item.type === 'Debilidad' && item.minusAttr === attrKey) {
+                    if (isAggravated) percentReduction += Math.max(item.aggravatorPercent || item.value, 0);
+                    else additive -= 25;
+                }
+            });
+
+            (char.equipment || []).map(normalizeEquipment).forEach(item => {
+                if (item.attr !== attrKey && !['Refugio / Territorio','Territorio'].includes(item.type)) return;
+                if (entryMatches(item.immune, opponent)) return;
+                let multiplier = 1;
+                if (entryMatches(item.superior, opponent)) multiplier += firstPercent(item.superior) / 100;
+                if (entryMatches(item.inferior, opponent)) multiplier -= firstPercent(item.inferior) / 100;
+                if (item.mode === 'add') additive += item.power * multiplier;
+                if (item.mode === 'buff') {
+                    if (['Montura / Vehículo','Montura'].includes(item.type)) additive += item.power;
+                    else percentBuff += item.power * multiplier;
+                }
+                if (item.mode === 'debuff') percentReduction += item.power * multiplier;
+            });
+
+            const applyArtifact = (item, affectedChar) => {
+                if (item.attr !== attrKey || entryMatches(item.immune, affectedChar)) return;
+                if (item.condition && !entryMatches(item.condition, affectedChar)) return;
+                let multiplier = 1;
+                if (entryMatches(item.superior, affectedChar)) multiplier += firstPercent(item.superior) / 100;
+                if (entryMatches(item.inferior, affectedChar)) multiplier -= firstPercent(item.inferior) / 100;
+                if (item.mode === 'buff') percentBuff += item.power * multiplier;
+                if (item.mode === 'debuff') percentReduction += item.power * multiplier;
+                if (item.mode === 'add') additive += item.power * multiplier;
+            };
+
+            allies.flatMap(c => c.equipment || []).map(normalizeEquipment).filter(eq => eq.type === 'Artefacto / Reliquia' && eq.target === 'ally').forEach(eq => applyArtifact(eq, char));
+            enemies.flatMap(c => c.equipment || []).map(normalizeEquipment).filter(eq => eq.type === 'Artefacto / Reliquia' && eq.target === 'enemy').forEach(eq => applyArtifact(eq, char));
+
+            if (hasRefuge) percentReduction = Math.min(percentReduction, 15);
+            const result = (base + additive) * (1 + percentBuff / 100) * (1 - percentReduction / 100) * (1 + protectedSpeedBuff / 100);
+            return Math.max(1, Math.round(result));
+        }
+
+        function logBattle(msg, isHighlight = false) {
+            const logBox = document.getElementById('battle-log');
+            const color = isHighlight ? 'text-white font-bold' : 'text-gray-300';
+            logBox.innerHTML += `<div class="${color}">${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        async function executeCombat() {
+            const { redTeam, blueTeam } = currentBattle;
+            let attrsToUse = [...ATTRS].sort(() => Math.random() - 0.5); // Shuffle
+            
+            for (let i = 0; i < 4; i++) {
+                // Check Premature Victory
+                if (currentBattle.redWins === 3 || currentBattle.blueWins === 3) {
+                    logBattle(`¡VICTORIA PREMATURA! Un equipo alcanzó 3 victorias. El cuarto duelo se cancela.`, true);
+                    break; 
+                }
+
+                const attr = attrsToUse[i];
+                currentBattle.duelsFought++;
+                const redChar = redTeam[i];
+                const blueChar = blueTeam[i];
+                let redVal = getEffectiveStat(redChar, attr.key, blueChar, redTeam, blueTeam);
+                let blueVal = getEffectiveStat(blueChar, attr.key, redChar, blueTeam, redTeam);
+                if (normalizeWorldStatus(redChar.world).title && redChar.level > blueChar.level) blueVal = Math.max(0, blueVal - 10);
+                if (normalizeWorldStatus(blueChar.world).title && blueChar.level > redChar.level) redVal = Math.max(0, redVal - 10);
+
+                logBattle(`Duelo ${i+1}: Evaluando ${attr.name}...`);
+                await sleep(1000);
+
+                // Reveal Cards
+                document.getElementById(`red-corner-card-${i}`).classList.add('flipped');
+                document.getElementById(`blue-corner-card-${i}`).classList.add('flipped');
+                await sleep(800);
+
+                if (redVal > blueVal) {
+                    currentBattle.redWins++;
+                    currentBattle.duelResults.push({ attr: attr.key, winnerId: redChar.id, loserId: blueChar.id });
+                    logBattle(`🥊 ${getDisplayName(redChar)} (${redVal}) vence a ${getDisplayName(blueChar)} (${blueVal}). Punto ROJO.`);
+                } else if (blueVal > redVal) {
+                    currentBattle.blueWins++;
+                    currentBattle.duelResults.push({ attr: attr.key, winnerId: blueChar.id, loserId: redChar.id });
+                    logBattle(`🥊 ${getDisplayName(blueChar)} (${blueVal}) vence a ${getDisplayName(redChar)} (${redVal}). Punto AZUL.`);
+                } else {
+                    // Tie in duel goes to random
+                    const redWon = Math.random() > 0.5;
+                    if(redWon) currentBattle.redWins++; else currentBattle.blueWins++;
+                    currentBattle.duelResults.push({ attr: attr.key, winnerId: redWon ? redChar.id : blueChar.id, loserId: redWon ? blueChar.id : redChar.id });
+                    logBattle(`🥊 Empate en ${attr.name} (${redVal}). Moneda decide: Punto ${redWon ? 'ROJO' : 'AZUL'}.`);
+                }
+                
+                logBattle(`Marcador: ROJO ${currentBattle.redWins} - AZUL ${currentBattle.blueWins}`);
+                await sleep(1000);
+            }
+
+            // Evaluate Match End
+            if (currentBattle.redWins === currentBattle.blueWins) {
+                logBattle(`¡EMPATE GLOBAL! Resolviendo por Sumatoria Total...`, true);
+                await sleep(1500);
+                
+                let redSum = 0; let blueSum = 0;
+                for(let i=0; i<4; i++) {
+                    redSum += redTeam[i].stats.INT + redTeam[i].stats.STR + redTeam[i].stats.SPD + redTeam[i].stats.MAG;
+                    blueSum += blueTeam[i].stats.INT + blueTeam[i].stats.STR + blueTeam[i].stats.SPD + blueTeam[i].stats.MAG;
+                }
+                
+                logBattle(`Sumatoria ROJA: ${redSum} | Sumatoria AZUL: ${blueSum}`);
+                if (redSum >= blueSum) {
+                    currentBattle.redWins++;
+                    logBattle(`¡La Esquina ROJA gana el desempate!`, true);
+                } else {
+                    currentBattle.blueWins++;
+                    logBattle(`¡La Esquina AZUL gana el desempate!`, true);
+                }
+            }
+
+            const winner = currentBattle.redWins > currentBattle.blueWins ? 'ROJA' : 'AZUL';
+            logBattle(`🏆 BATALLA FINALIZADA. Gana la Esquina ${winner}.`, true);
+            
+            document.getElementById('battle-actions').classList.remove('hidden');
+        }
+
+        function finishBattle() {
+            const redWon = currentBattle.redWins > currentBattle.blueWins;
+            const participantsCount = currentBattle.duelsFought; // usually 4, unless early victory (3)
+            
+            const winningTeam = redWon ? currentBattle.redTeam : currentBattle.blueTeam;
+            const losingTeam = redWon ? currentBattle.blueTeam : currentBattle.redTeam;
+
+            // Process only those who fought (up to participantsCount)
+            for (let i = 0; i < participantsCount; i++) {
+                // Winners
+                let wChar = winningTeam[i];
+                wChar.battles++;
+                wChar.points.pos++;
+                if (wChar.battles % 30 === 0) queueMilestone(wChar);
+                
+                // Losers
+                let lChar = losingTeam[i];
+                lChar.battles++;
+                lChar.points.neg++;
+                if (lChar.battles % 30 === 0) queueMilestone(lChar);
+            }
+
+            // Process supernatural oath consequences and debt resolutions by individual duel.
+            (currentBattle.duelResults || []).forEach(result => {
+                const winner = state.characters.find(c => c.id === result.winnerId);
+                const loser = state.characters.find(c => c.id === result.loserId);
+                [winner, loser].filter(Boolean).forEach(char => {
+                    const destiny = normalizeDestiny(char.destiny);
+                    if (destiny.oathAttr === result.attr && destiny.oathPath === 'risk' && char.id === result.loserId) char.points.neg += 5;
+                    if (destiny.oathAttr === result.attr && destiny.oathPath === 'overcome' && char.id === result.winnerId) char.points.pos += 5;
+                });
+                if (winner) {
+                    const world = normalizeWorldStatus(winner.world);
+                    if (world.debtActive && loser && characterMatchesQuery(loser, world.debtTarget)) winner.world = { ...world, debtActive: false };
+                }
+            });
+
+            // Process Relationships (Allies and Rivals) only for those who fought
+            const actualRed = currentBattle.redTeam.slice(0, participantsCount);
+            const actualBlue = currentBattle.blueTeam.slice(0, participantsCount);
+            
+            processRelationships(actualRed, actualBlue, winningTeam.includes(actualRed[0]) ? 'red' : 'blue');
+
+            saveState();
+            
+            // Reset Arena UI
+            document.getElementById('battle-arena').classList.add('hidden');
+            document.getElementById('btn-start-battle').classList.remove('hidden');
+            currentBattle = null;
+            
+            // Switch back to management to see updates
+            switchTab('management');
+        }
+
+        function getRelKey(id1, id2) {
+            return [id1, id2].sort().join('_');
+        }
+
+        function processRelationships(redTeam, blueTeam, winnerTeamStr) {
+            const updateRel = (c1, c2, type, winnerStr = null, loserStr = null) => {
+                if(c1.id === c2.id) return;
+                const key = getRelKey(c1.id, c2.id);
+                if (!state.relationships[key]) {
+                    state.relationships[key] = { allies: 0, totalAllies: 0, rivals: 0, hasCompanero: false, hasRival: false };
+                }
+                let rel = state.relationships[key];
+
+                if (type === 'ally') {
+                    rel.allies++;
+                    rel.totalAllies = (rel.totalAllies || 0) + 1;
+                    if (rel.hasRival && rel.allies === 5) {
+                        // Remove Rival
+                        rel.hasRival = false;
+                        rel.allies = 0;
+                        removeMilestone(c1, "Rival", c2.name);
+                        removeMilestone(c2, "Rival", c1.name);
+                    } else if (!rel.hasCompanero && !rel.hasRival && rel.allies === 5) {
+                        rel.hasCompanero = true;
+                        rel.allies = 0;
+                        addAutoMilestone(c1, "Compañero", c2.name);
+                        addAutoMilestone(c2, "Compañero", c1.name);
+                    }
+                } else if (type === 'rival') {
+                    rel.rivals++;
+                    if (rel.hasCompanero && rel.rivals === 5) {
+                        // Betrayal / Revenge
+                        rel.hasCompanero = false;
+                        rel.rivals = 0;
+                        // Determine who won this specific match
+                        let winnerChar = winnerStr === 'red' ? (redTeam.includes(c1) ? c1 : c2) : (blueTeam.includes(c1) ? c1 : c2);
+                        let loserChar = winnerChar.id === c1.id ? c2 : c1;
+                        
+                        addAutoMilestone(winnerChar, "Venganza / Traición", `Traicionó a ${loserChar.name}`);
+                        addAutoMilestone(loserChar, "Venganza / Traición", `Venganza contra ${winnerChar.name}`);
+                    } else if (!rel.hasCompanero && !rel.hasRival && rel.rivals === 5) {
+                        rel.hasRival = true;
+                        rel.rivals = 0;
+                        addAutoMilestone(c1, "Rival", c2.name);
+                        addAutoMilestone(c2, "Rival", c1.name);
+                    }
+                }
+            };
+
+            // Allies: Pairs within Red
+            for(let i=0; i<redTeam.length; i++) {
+                for(let j=i+1; j<redTeam.length; j++) {
+                    updateRel(redTeam[i], redTeam[j], 'ally');
+                }
+            }
+            // Allies: Pairs within Blue
+            for(let i=0; i<blueTeam.length; i++) {
+                for(let j=i+1; j<blueTeam.length; j++) {
+                    updateRel(blueTeam[i], blueTeam[j], 'ally');
+                }
+            }
+            // Rivals: Red vs Blue
+            for(let i=0; i<redTeam.length; i++) {
+                for(let j=0; j<blueTeam.length; j++) {
+                    updateRel(redTeam[i], blueTeam[j], 'rival', winnerTeamStr);
+                }
+            }
+        }
+
+        function addAutoMilestone(char, type, note) {
+            char.milestones.push({ type, name: note, description: note, image: '', auto: true });
+        }
+
+        function removeMilestone(char, type, relatedName) {
+            // Find and remove the specific rival milestone without exposing history in the handwritten lore.
+            char.milestones = char.milestones.filter(m => {
+                const normalized = normalizeMilestone(m);
+                return !(normalized.type === type && `${normalized.name} ${normalized.description}`.includes(relatedName));
+            });
+        }
+
+        // Utility: sleep for animations
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // Start app
+        init();
     </script>
 </body>
 </html>

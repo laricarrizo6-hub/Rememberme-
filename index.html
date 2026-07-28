@@ -104,10 +104,11 @@
         <!-- Create Character Form -->
         <div id="create-char-panel" class="hidden bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
             <div class="flex items-center justify-between gap-4 mb-4 border-b border-gray-700 pb-2">
-                <h2 class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
+                <h2 id="create-char-title" class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
                 <button onclick="toggleCreateForm(false)" class="text-gray-400 hover:text-white text-sm">Ocultar</button>
             </div>
             <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="hidden" id="char-edit-id">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
@@ -147,7 +148,8 @@
                             <input type="number" id="char-mag" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-purple-500">
                         </div>
                     </div>
-                    <button type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
+                    <button id="create-char-submit" type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
+                    <button id="create-char-cancel" type="button" onclick="resetCharacterForm()" class="hidden mt-3 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Cancelar edición</button>
                 </div>
             </form>
         </div>
@@ -601,6 +603,53 @@
             const shouldOpen = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
             panel.classList.toggle('hidden', !shouldOpen);
             button.innerText = shouldOpen ? 'Ocultar formulario' : '+ Nuevo personaje';
+            if (!shouldOpen) resetCharacterForm();
+        }
+
+        function resetCharacterForm() {
+            const form = document.getElementById('create-char-form');
+            form.reset();
+            document.getElementById('char-edit-id').value = '';
+            document.getElementById('create-char-title').innerText = 'Reclutar Nuevo Personaje';
+            document.getElementById('create-char-submit').innerText = 'Crear Personaje';
+            document.getElementById('create-char-cancel').classList.add('hidden');
+        }
+
+        function editCharacter(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) return;
+            toggleCreateForm(true);
+            document.getElementById('char-edit-id').value = char.id;
+            document.getElementById('char-name').value = char.name;
+            document.getElementById('char-type').value = char.type;
+            document.getElementById('char-story').value = char.story;
+            document.getElementById('char-int').value = char.stats.INT;
+            document.getElementById('char-str').value = char.stats.STR;
+            document.getElementById('char-spd').value = char.stats.SPD;
+            document.getElementById('char-mag').value = char.stats.MAG;
+            document.getElementById('create-char-title').innerText = `Editar Personaje: ${char.name}`;
+            document.getElementById('create-char-submit').innerText = 'Guardar Cambios';
+            document.getElementById('create-char-cancel').classList.remove('hidden');
+            document.getElementById('create-char-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function deleteCharacter(charId) {
+            const char = state.characters.find(c => c.id === charId);
+            if (!char || !confirm(`¿Eliminar a ${char.name}? Esta acción también limpiará sus relaciones.`)) return;
+            state.characters = state.characters.filter(c => c.id !== charId);
+            state.rotationPool = state.rotationPool.filter(id => id !== charId);
+            Object.keys(state.relationships).forEach(key => { if (key.split('_').includes(charId)) delete state.relationships[key]; });
+            state.characters.forEach(other => {
+                other.world = normalizeWorldStatus(other.world);
+                other.world.milestones = other.world.milestones.filter(ms => ms.companionId !== charId && !(ms.memberIds || []).includes(charId) && !(ms.targetCharacters || []).includes(charId));
+                other.world = normalizeWorldStatus(other.world);
+                other.destiny = normalizeDestiny(other.destiny);
+                other.destiny.milestones = other.destiny.milestones.filter(ms => ms.casterId !== charId);
+                other.destiny = normalizeDestiny(other.destiny);
+            });
+            if (currentCharId === charId) closeModal();
+            resetCharacterForm();
+            saveState();
         }
 
         function queueMilestone(char) {
@@ -928,8 +977,8 @@
 
         document.getElementById('create-char-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const newChar = {
-                id: generateId(),
+            const editId = document.getElementById('char-edit-id').value;
+            const characterData = {
                 name: document.getElementById('char-name').value.trim(),
                 type: document.getElementById('char-type').value,
                 image: buildCharacterImagePath(document.getElementById('char-name').value),
@@ -939,25 +988,23 @@
                     STR: parseInt(document.getElementById('char-str').value),
                     SPD: parseInt(document.getElementById('char-spd').value),
                     MAG: parseInt(document.getElementById('char-mag').value)
-                },
-                level: 1,
-                cap: 100,
-                breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 },
-                points: { pos: 0, neg: 0 },
-                battles: 0,
-                milestones: [],
-                equipment: [],
-                mental: [],
-                world: normalizeWorldStatus(),
-                destiny: normalizeDestiny(),
-                pendingMilestones: 0,
-                pendingAction: null // 'points'
+                }
             };
-            
-            if (!CHARACTER_TYPES.includes(newChar.type)) return alert('Debes elegir un tipo de personaje válido.');
-            state.characters.push(newChar);
+            if (!CHARACTER_TYPES.includes(characterData.type)) return alert('Debes elegir un tipo de personaje válido.');
+            if (editId) {
+                const char = state.characters.find(c => c.id === editId);
+                if (!char) return alert('No se encontró el personaje a editar.');
+                Object.assign(char, characterData);
+                enforceDestinyStats(char);
+            } else {
+                state.characters.push({
+                    id: generateId(), ...characterData,
+                    level: 1, cap: 100, breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 }, points: { pos: 0, neg: 0 }, battles: 0,
+                    milestones: [], equipment: [], mental: [], world: normalizeWorldStatus(), destiny: normalizeDestiny(), pendingMilestones: 0, pendingAction: null
+                });
+            }
             saveState();
-            e.target.reset();
+            resetCharacterForm();
             toggleCreateForm(false);
         });
 
@@ -989,7 +1036,7 @@
                     <div class="p-4">
                         <div class="flex items-start justify-between gap-2">
                             <h3 class="font-bold text-lg text-white truncate">${getDisplayName(char)}</h3>
-                            <div class="shrink-0 flex gap-1"><button title="Inventario" onclick="event.stopPropagation(); openInventoryModal('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">⚔️</button><button title="Mente" onclick="event.stopPropagation(); openMentalModal('${char.id}')" class="bg-purple-950/70 hover:bg-purple-900 border border-purple-700 rounded-lg px-2 py-1 text-sm">🧠</button><button title="Mundo" onclick="event.stopPropagation(); openWorldModal('${char.id}')" class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-sm">🌎</button><button title="Destino" onclick="event.stopPropagation(); openDestinyModal('${char.id}')" class="bg-sky-950/70 hover:bg-sky-900 border border-sky-700 rounded-lg px-2 py-1 text-sm">🔮</button></div>
+                            <div class="shrink-0 flex gap-1"><button title="Editar" onclick="event.stopPropagation(); editCharacter('${char.id}')" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">✏️</button><button title="Eliminar" onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">🗑️</button><button title="Inventario" onclick="event.stopPropagation(); openInventoryModal('${char.id}')" class="bg-red-950/70 hover:bg-red-900 border border-red-700 rounded-lg px-2 py-1 text-sm">⚔️</button><button title="Mente" onclick="event.stopPropagation(); openMentalModal('${char.id}')" class="bg-purple-950/70 hover:bg-purple-900 border border-purple-700 rounded-lg px-2 py-1 text-sm">🧠</button><button title="Mundo" onclick="event.stopPropagation(); openWorldModal('${char.id}')" class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-sm">🌎</button><button title="Destino" onclick="event.stopPropagation(); openDestinyModal('${char.id}')" class="bg-sky-950/70 hover:bg-sky-900 border border-sky-700 rounded-lg px-2 py-1 text-sm">🔮</button></div>
                         </div>
                         <p class="text-xs text-gray-400 mb-1">Tipo: ${escapeHtml(char.type || '—')}</p>
                         <p class="text-sm text-primary mb-2">Nivel ${char.level} | ${char.battles} Batallas | ⚔️ ${inventoryCount} | 🧠 ${mentalCount}</p>

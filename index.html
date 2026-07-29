@@ -80,8 +80,9 @@
         .char-card__level { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.1rem; font-size: 0.8rem; color: #5b1d0b; text-shadow: 0 1px rgba(255,255,255,0.35); }
         .char-card__media { position: relative; min-height: 0; padding: 0.35rem; border: 3px solid #4a2712; background: radial-gradient(circle at 50% 20%, rgba(247, 215, 121, 0.35), transparent 32%), #111827; box-shadow: inset 0 0 20px rgba(0,0,0,0.85); }
         .char-card__image { width: 100%; height: 100%; min-height: 13rem; object-fit: cover; object-position: top; border: 1px solid rgba(255, 236, 170, 0.55); filter: contrast(1.05) saturate(1.05); }
-        .char-card__lore { min-height: 4.8rem; padding: 0.55rem; border: 2px solid #5f3316; background: #ead7ad; color: #2d190c; font-family: Georgia, 'Times New Roman', serif; font-size: 0.78rem; line-height: 1.15; box-shadow: inset 0 0 10px rgba(91, 29, 11, 0.22); }
-        .char-card__type { display: block; margin-bottom: 0.2rem; font-family: Inter, sans-serif; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #6b2f12; }
+        .char-card__type-panel { min-height: 4.8rem; display: flex; flex-direction: column; justify-content: center; gap: 0.35rem; padding: 0.55rem; border: 2px solid #5f3316; background: #ead7ad; color: #2d190c; box-shadow: inset 0 0 10px rgba(91, 29, 11, 0.22); }
+        .char-card__type-label { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: #6b2f12; }
+        .char-card__type { display: inline-flex; align-items: center; width: fit-content; border: 1px solid rgba(107, 47, 18, 0.35); border-radius: 9999px; background: rgba(255, 247, 214, 0.7); padding: 0.25rem 0.6rem; font-family: Inter, sans-serif; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #3f1d0b; }
         .char-card__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
         .char-card__action { min-height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
         .char-card__meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -1077,9 +1078,9 @@
                             ${badges}
                             ${getImageHtml(char.image, char.name, 'char-card__image')}
                         </div>
-                        <div class="char-card__lore">
-                            <span class="char-card__type">[${escapeHtml(char.type || 'Sin tipo')}]</span>
-                            ${escapeHtml(char.story || 'Sin historia registrada.')}
+                        <div class="char-card__type-panel" aria-label="Tipo de personaje">
+                            <span class="char-card__type-label">Tipo</span>
+                            <span class="char-card__type">${escapeHtml(char.type || 'Sin tipo')}</span>
                         </div>
                         <div class="char-card__stats" aria-label="Atributos principales">
                             <span class="char-card__stat text-blue-300"><strong>INT</strong><span>${getDisplayedStat(char, 'INT')}</span></span>
